@@ -1,0 +1,6 @@
+{
+  "name": "Craken Pro",
+  "description": "Institutional-grade cryptocurrency and multi-asset brokerage platform featuring real-time live market execution, multi-currency switching, KYC compliance verification, encrypted ledger adjustments, and a dedicated executive portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
