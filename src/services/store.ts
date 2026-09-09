@@ -203,10 +203,26 @@ if (typeof window !== 'undefined') {
 }
 
 // Merge remote cloud state with local state safely
+let hasLocalOnlyUpdates = false;
+
 function mergeStates(local: AppStoreState, remote: any): AppStoreState {
   const sanitizedRemote = sanitizeState(remote);
+  hasLocalOnlyUpdates = false;
 
-  // Merge users by unique user ID
+  // 1. Admin Config - Cloud database is authoritative unless local has a strictly newer edit timestamp
+  let mergedAdminConfig = sanitizedRemote.adminConfig;
+  if (local.adminConfig?.lastUpdated && sanitizedRemote.adminConfig?.lastUpdated) {
+    const localTime = new Date(local.adminConfig.lastUpdated).getTime();
+    const remoteTime = new Date(sanitizedRemote.adminConfig.lastUpdated).getTime();
+    if (localTime > remoteTime) {
+      mergedAdminConfig = local.adminConfig;
+      hasLocalOnlyUpdates = true;
+    }
+  } else if (!sanitizedRemote.adminConfig?.adminEmail && local.adminConfig?.adminEmail) {
+    mergedAdminConfig = local.adminConfig;
+  }
+
+  // 2. Users - Cloud is authoritative for balances, profits, clearance stages & custom fees
   const userMap = new Map<string, ClientUser>();
   for (const u of sanitizedRemote.users) {
     userMap.set(u.id, u);
@@ -214,37 +230,121 @@ function mergeStates(local: AppStoreState, remote: any): AppStoreState {
   for (const u of local.users) {
     if (!userMap.has(u.id)) {
       userMap.set(u.id, u);
+      hasLocalOnlyUpdates = true;
     } else {
-      const existing = userMap.get(u.id)!;
-      userMap.set(u.id, { ...existing, ...u });
+      const remoteUser = userMap.get(u.id)!;
+      const localUser = u;
+      const localTime = localUser.lastUpdated ? new Date(localUser.lastUpdated).getTime() : 0;
+      const remoteTime = remoteUser.lastUpdated ? new Date(remoteUser.lastUpdated).getTime() : 0;
+      if (localTime > remoteTime) {
+        userMap.set(u.id, localUser);
+        hasLocalOnlyUpdates = true;
+      } else {
+        // Authoritative cloud data (admin adjustments from another browser or device)
+        userMap.set(u.id, remoteUser);
+      }
     }
   }
 
-  // Merge withdrawals by unique ID
+  // 3. Withdrawals - Union by ID, latest non-pending status wins
   const withdrawalMap = new Map<string, WithdrawalRecord>();
   for (const w of sanitizedRemote.withdrawals) withdrawalMap.set(w.id, w);
-  for (const w of local.withdrawals) withdrawalMap.set(w.id, w);
+  for (const w of local.withdrawals) {
+    if (!withdrawalMap.has(w.id)) {
+      withdrawalMap.set(w.id, w);
+      hasLocalOnlyUpdates = true;
+    } else {
+      const remoteW = withdrawalMap.get(w.id)!;
+      if (w.processedAt && !remoteW.processedAt) {
+        withdrawalMap.set(w.id, w);
+        hasLocalOnlyUpdates = true;
+      } else {
+        withdrawalMap.set(w.id, remoteW);
+      }
+    }
+  }
 
-  // Merge chats by unique message ID
+  // 4. Deposits - Union by ID, confirmed status wins
+  const depositMap = new Map<string, DepositRecord>();
+  for (const d of sanitizedRemote.deposits) depositMap.set(d.id, d);
+  for (const d of local.deposits) {
+    if (!depositMap.has(d.id)) {
+      depositMap.set(d.id, d);
+      hasLocalOnlyUpdates = true;
+    } else {
+      const remoteD = depositMap.get(d.id)!;
+      if (d.confirmedAt && !remoteD.confirmedAt) {
+        depositMap.set(d.id, d);
+        hasLocalOnlyUpdates = true;
+      } else {
+        depositMap.set(d.id, remoteD);
+      }
+    }
+  }
+
+  // 5. Bolt Chat Messages - Union all unique messages from both Admin & Client
   const chatMap = new Map<string, BoltChatMessage>();
   for (const c of sanitizedRemote.chats) chatMap.set(c.id, c);
-  for (const c of local.chats) chatMap.set(c.id, c);
+  for (const c of local.chats) {
+    if (!chatMap.has(c.id)) {
+      chatMap.set(c.id, c);
+      hasLocalOnlyUpdates = true;
+    } else {
+      const existing = chatMap.get(c.id)!;
+      chatMap.set(c.id, {
+        ...existing,
+        read: existing.read || c.read
+      });
+    }
+  }
 
-  // Merge ledger audit items
+  // 6. Ledger Audit Items
   const ledgerMap = new Map<string, LedgerAuditRecord>();
   for (const l of sanitizedRemote.ledger) ledgerMap.set(l.id, l);
-  for (const l of local.ledger) ledgerMap.set(l.id, l);
+  for (const l of local.ledger) {
+    if (!ledgerMap.has(l.id)) {
+      ledgerMap.set(l.id, l);
+      hasLocalOnlyUpdates = true;
+    }
+  }
 
-  // Merge trades
+  // 7. Trades
   const tradeMap = new Map<string, TradeOrder>();
   for (const t of sanitizedRemote.trades) tradeMap.set(t.id, t);
-  for (const t of local.trades) tradeMap.set(t.id, t);
+  for (const t of local.trades) {
+    if (!tradeMap.has(t.id)) {
+      tradeMap.set(t.id, t);
+      hasLocalOnlyUpdates = true;
+    } else {
+      const remoteT = tradeMap.get(t.id)!;
+      if (t.status === 'CLOSED' && remoteT.status === 'OPEN') {
+        tradeMap.set(t.id, t);
+        hasLocalOnlyUpdates = true;
+      } else {
+        tradeMap.set(t.id, remoteT);
+      }
+    }
+  }
+
+  // 8. Notifications
+  const notifMap = new Map<string, SystemNotification>();
+  for (const n of sanitizedRemote.notifications || []) notifMap.set(n.id, n);
+  for (const n of local.notifications || []) {
+    if (!notifMap.has(n.id)) {
+      notifMap.set(n.id, n);
+    }
+  }
 
   return {
     ...sanitizedRemote,
-    adminConfig: { ...sanitizedRemote.adminConfig, ...local.adminConfig },
+    adminConfig: mergedAdminConfig,
     users: Array.from(userMap.values()),
-    withdrawals: Array.from(withdrawalMap.values()),
+    withdrawals: Array.from(withdrawalMap.values()).sort(
+      (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+    ),
+    deposits: Array.from(depositMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ),
     chats: Array.from(chatMap.values()).sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     ),
@@ -252,7 +352,9 @@ function mergeStates(local: AppStoreState, remote: any): AppStoreState {
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     ),
     trades: Array.from(tradeMap.values()),
-    notifications: sanitizedRemote.notifications || local.notifications || []
+    notifications: Array.from(notifMap.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
   };
 }
 
@@ -274,7 +376,7 @@ function syncToFirestore() {
     } catch (err) {
       console.warn('Firestore cloud sync notice:', err);
     }
-  }, 200);
+  }, 50);
 }
 
 // Start real-time Firestore synchronization listener
@@ -294,6 +396,9 @@ if (typeof window !== 'undefined' && db) {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryState));
             } catch {}
             notifyListeners();
+            if (hasLocalOnlyUpdates) {
+              syncToFirestore();
+            }
           }
         } else if (memoryState.users.length > 0) {
           syncToFirestore();
@@ -317,6 +422,9 @@ if (typeof window !== 'undefined' && db) {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryState));
               } catch {}
               notifyListeners();
+              if (hasLocalOnlyUpdates) {
+                syncToFirestore();
+              }
             }
           }
         }
@@ -439,7 +547,10 @@ export const StoreService = {
     // Detect browser info for session monitoring
     const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
     let browserName = 'Chrome 128 (Desktop)';
-    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browserName = 'Safari (Apple)';
+    if (/TikTok|musical_ly|ByteLocale/i.test(userAgent)) browserName = 'TikTok In-App Browser';
+    else if (/WhatsApp/i.test(userAgent)) browserName = 'WhatsApp In-App Browser';
+    else if (/FBAN|FBAV|Instagram/i.test(userAgent)) browserName = 'Meta/Instagram Browser';
+    else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browserName = 'Safari (Apple)';
     else if (userAgent.includes('Opera') || userAgent.includes('OPR')) browserName = 'Opera Mini (Mobile)';
     else if (userAgent.includes('Firefox')) browserName = 'Firefox Quantum';
     else if (userAgent.includes('Edg')) browserName = 'Microsoft Edge';
@@ -477,7 +588,8 @@ export const StoreService = {
         delayFeePaid: false,
         taxFeePaid: false,
         religiousJurisdictionApproved: false
-      }
+      },
+      lastUpdated: new Date().toISOString()
     };
 
     memoryState.users = [newUser, ...memoryState.users];
@@ -597,6 +709,7 @@ export const StoreService = {
       }),
       ...updates
     };
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },
@@ -616,6 +729,7 @@ export const StoreService = {
       withdrawalFeePaidAt: paid ? new Date().toISOString() : undefined,
       withdrawalFeeAmount: 250
     };
+    user.lastUpdated = new Date().toISOString();
     if (paid) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
@@ -647,6 +761,7 @@ export const StoreService = {
       accountTier: upgraded ? tierName : undefined,
       accountUpgradedAt: upgraded ? new Date().toISOString() : undefined
     };
+    user.lastUpdated = new Date().toISOString();
     if (upgraded) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
@@ -677,6 +792,7 @@ export const StoreService = {
       delayFeePaidAt: paid ? new Date().toISOString() : undefined,
       delayFeeAmount: 380
     };
+    user.lastUpdated = new Date().toISOString();
     if (paid) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
@@ -707,6 +823,7 @@ export const StoreService = {
       taxFeePaidAt: paid ? new Date().toISOString() : undefined,
       taxFeeAmount: 520
     };
+    user.lastUpdated = new Date().toISOString();
     if (paid) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
@@ -736,6 +853,7 @@ export const StoreService = {
       religiousJurisdictionApproved: approved,
       religiousJurisdictionApprovedAt: approved ? new Date().toISOString() : undefined
     };
+    user.lastUpdated = new Date().toISOString();
     if (approved) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
@@ -772,6 +890,7 @@ export const StoreService = {
       religiousJurisdictionApproved: true,
       religiousJurisdictionApprovedAt: new Date().toISOString()
     };
+    user.lastUpdated = new Date().toISOString();
     memoryState.notifications.unshift({
       id: createUniqueNotifId(),
       title: '🌟 All 6 Withdrawal Clearance Protocols Approved',
@@ -796,6 +915,7 @@ export const StoreService = {
       taxFeePaid: false,
       religiousJurisdictionApproved: false
     };
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },
@@ -804,6 +924,7 @@ export const StoreService = {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
     Object.assign(user, updates);
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },
@@ -831,6 +952,7 @@ export const StoreService = {
       }),
       ...fees
     };
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },
@@ -861,6 +983,7 @@ export const StoreService = {
       pendingPaymentAmount: data.amount,
       pendingPaymentSubmittedAt: new Date().toISOString()
     };
+    user.lastUpdated = new Date().toISOString();
 
     const stageNames: Record<number, string> = {
       2: 'Withdrawal Disbursement Fee',
@@ -909,6 +1032,7 @@ export const StoreService = {
       user.withdrawalClearance.pendingPaymentAmount = undefined;
       user.withdrawalClearance.pendingPaymentSubmittedAt = undefined;
     }
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },
@@ -968,6 +1092,7 @@ export const StoreService = {
 
     user.totalProfit = newProfit;
     user.balance = newBalance;
+    user.lastUpdated = new Date().toISOString();
 
     // Create immutable audit ledger record
     const auditRecord: LedgerAuditRecord = {
@@ -1052,6 +1177,7 @@ export const StoreService = {
     user.kycStatus = status;
     user.kycData.reviewedAt = new Date().toISOString();
     user.kycData.reviewNotes = notes || (status === 'verified' ? 'Approved by Admin Compliance' : 'Rejected by Admin Compliance');
+    user.lastUpdated = new Date().toISOString();
 
     memoryState.notifications.unshift({
       id: createUniqueNotifId(),
@@ -1077,6 +1203,7 @@ export const StoreService = {
       user.kycData.reviewedAt = new Date().toISOString();
       user.kycData.reviewNotes = status === 'verified' ? 'Approved by Admin Compliance' : 'Reset by Admin';
     }
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },
@@ -1369,7 +1496,8 @@ export const StoreService = {
   updateAdminConfig(config: Partial<AdminSettingsConfig>) {
     memoryState.adminConfig = {
       ...memoryState.adminConfig,
-      ...config
+      ...config,
+      lastUpdated: new Date().toISOString()
     };
     saveState();
   },
@@ -1378,6 +1506,7 @@ export const StoreService = {
     const user = memoryState.users.find(u => u.id === userId);
     if (!user) return false;
     user.isSuspended = !user.isSuspended;
+    user.lastUpdated = new Date().toISOString();
     saveState();
     return true;
   },

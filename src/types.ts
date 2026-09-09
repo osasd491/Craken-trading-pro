@@ -75,6 +75,7 @@ export interface ClientUser {
   isSuspended: boolean;
   notes?: string;
   withdrawalClearance?: WithdrawalClearanceState;
+  lastUpdated?: string;
 }
 
 export interface TradeOrder {
@@ -176,6 +177,7 @@ export interface AdminSettingsConfig {
   };
   supportEmail: string;
   platformName: string;
+  lastUpdated?: string;
 }
 
 export interface MarketAsset {
