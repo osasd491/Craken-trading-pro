@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AdminSettingsConfig,
   BoltChatMessage,
@@ -261,10 +261,11 @@ const FIRESTORE_SYNC_DOC = 'store';
 let firestoreDebounceTimer: any = null;
 
 function syncToFirestore() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !db) return;
   clearTimeout(firestoreDebounceTimer);
   firestoreDebounceTimer = setTimeout(async () => {
     try {
+      if (!db) return;
       const syncDocRef = doc(db, 'app_sync', FIRESTORE_SYNC_DOC);
       // Clean undefined and circular references before Firestore write
       const payload = JSON.parse(JSON.stringify(memoryState));
@@ -277,7 +278,7 @@ function syncToFirestore() {
 }
 
 // Start real-time Firestore synchronization listener
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && db) {
   try {
     const syncDocRef = doc(db, 'app_sync', FIRESTORE_SYNC_DOC);
     
@@ -392,7 +393,7 @@ function saveState() {
 function notifyListeners() {
   listeners.forEach((listener) => {
     try {
-      listener({ ...memoryState });
+      listener(memoryState);
     } catch (err) {
       console.error('Error in store listener', err);
     }
@@ -401,12 +402,11 @@ function notifyListeners() {
 
 export const StoreService = {
   getState(): AppStoreState {
-    return { ...memoryState };
+    return memoryState;
   },
 
   subscribe(listener: (state: AppStoreState) => void): () => void {
     listeners.add(listener);
-    listener({ ...memoryState });
     return () => {
       listeners.delete(listener);
     };
@@ -1392,10 +1392,12 @@ export const StoreService = {
 };
 
 export function useStore(): AppStoreState {
-  return useSyncExternalStore(
-    StoreService.subscribe,
-    StoreService.getState,
-    StoreService.getState
-  );
+  const [state, setState] = useState<AppStoreState>(() => StoreService.getState());
+  useEffect(() => {
+    return StoreService.subscribe((next) => {
+      setState(next);
+    });
+  }, []);
+  return state;
 }
 
