@@ -1,17 +1,49 @@
 {
   "entities": {
-    "app_sync": {
-      "path": "app_sync/{docId}",
+    "AppSyncStore": {
+      "title": "AppSyncStore",
       "description": "Global synchronized state for clients, deposits, withdrawals, trades, chats, and admin configurations",
-      "fields": {
-        "users": { "type": "array", "description": "List of registered clients and their account balances" },
-        "adminConfig": { "type": "map", "description": "Admin brokerage configurations and wallets" },
-        "withdrawals": { "type": "array", "description": "Withdrawal requests and audit status" },
-        "ledger": { "type": "array", "description": "Financial ledger transactions" },
-        "chats": { "type": "array", "description": "Bolt support chat messages" },
-        "trades": { "type": "array", "description": "Active and closed trades" },
-        "updatedAt": { "type": "string", "description": "Last synchronization timestamp" }
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "description": "List of registered clients, balances, and withdrawalClearance states"
+        },
+        "adminConfig": {
+          "type": "object",
+          "description": "Admin brokerage configurations and wallets"
+        },
+        "withdrawals": {
+          "type": "array",
+          "description": "Withdrawal requests and audit status"
+        },
+        "deposits": {
+          "type": "array",
+          "description": "Deposit requests and transaction hashes"
+        },
+        "ledger": {
+          "type": "array",
+          "description": "Financial ledger transactions"
+        },
+        "chats": {
+          "type": "array",
+          "description": "Bolt support chat messages"
+        },
+        "trades": {
+          "type": "array",
+          "description": "Active and closed trades"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last synchronization timestamp"
+        }
       }
+    }
+  },
+  "firestore": {
+    "/app_sync/{docId}": {
+      "schema": "AppSyncStore",
+      "description": "Synchronized institutional platform state document"
     }
   }
 }

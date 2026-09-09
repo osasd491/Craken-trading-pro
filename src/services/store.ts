@@ -717,6 +717,7 @@ export const StoreService = {
   verifyWithdrawalFee(userId: string, paid = true): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentFee = user.withdrawalClearance?.withdrawalFeeAmount ?? 250;
     user.withdrawalClearance = {
       ...(user.withdrawalClearance || {
         withdrawalFeePaid: false,
@@ -727,14 +728,14 @@ export const StoreService = {
       }),
       withdrawalFeePaid: paid,
       withdrawalFeePaidAt: paid ? new Date().toISOString() : undefined,
-      withdrawalFeeAmount: 250
+      withdrawalFeeAmount: currentFee
     };
     user.lastUpdated = new Date().toISOString();
     if (paid) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
         title: '✅ Withdrawal Processing Fee Cleared',
-        message: 'Your institutional withdrawal processing fee ($250.00) has been verified and registered by the compliance desk.',
+        message: `Your institutional withdrawal processing fee ($${currentFee.toFixed(2)}) has been verified and registered by the compliance desk.`,
         type: 'withdrawal',
         timestamp: new Date().toISOString(),
         read: false,
@@ -748,6 +749,7 @@ export const StoreService = {
   upgradeAccountTier(userId: string, upgraded = true, tierName = 'Institutional Executive VIP Tier 8.3'): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentFee = user.withdrawalClearance?.upgradeFeeAmount ?? 500;
     user.accountTier = upgraded ? tierName : undefined;
     user.withdrawalClearance = {
       ...(user.withdrawalClearance || {
@@ -759,7 +761,8 @@ export const StoreService = {
       }),
       accountUpgraded: upgraded,
       accountTier: upgraded ? tierName : undefined,
-      accountUpgradedAt: upgraded ? new Date().toISOString() : undefined
+      accountUpgradedAt: upgraded ? new Date().toISOString() : undefined,
+      upgradeFeeAmount: currentFee
     };
     user.lastUpdated = new Date().toISOString();
     if (upgraded) {
@@ -780,6 +783,7 @@ export const StoreService = {
   verifyDelayFee(userId: string, paid = true): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentFee = user.withdrawalClearance?.delayFeeAmount ?? 380;
     user.withdrawalClearance = {
       ...(user.withdrawalClearance || {
         withdrawalFeePaid: false,
@@ -790,14 +794,14 @@ export const StoreService = {
       }),
       delayFeePaid: paid,
       delayFeePaidAt: paid ? new Date().toISOString() : undefined,
-      delayFeeAmount: 380
+      delayFeeAmount: currentFee
     };
     user.lastUpdated = new Date().toISOString();
     if (paid) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
         title: '✅ Liquidity Settlement Delay Fee Cleared',
-        message: 'Settlement delay and liquidity clearance fee ($380.00) has been officially verified. Capital release unlocked from reserve.',
+        message: `Settlement delay and liquidity clearance fee ($${currentFee.toFixed(2)}) has been officially verified. Capital release unlocked from reserve.`,
         type: 'withdrawal',
         timestamp: new Date().toISOString(),
         read: false,
@@ -811,6 +815,7 @@ export const StoreService = {
   verifyTaxFee(userId: string, paid = true): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentFee = user.withdrawalClearance?.taxFeeAmount ?? 520;
     user.withdrawalClearance = {
       ...(user.withdrawalClearance || {
         withdrawalFeePaid: false,
@@ -821,14 +826,14 @@ export const StoreService = {
       }),
       taxFeePaid: paid,
       taxFeePaidAt: paid ? new Date().toISOString() : undefined,
-      taxFeeAmount: 520
+      taxFeeAmount: currentFee
     };
     user.lastUpdated = new Date().toISOString();
     if (paid) {
       memoryState.notifications.unshift({
         id: createUniqueNotifId(),
         title: '📋 Capital Gains Tax Clearance Certificate Issued',
-        message: 'Statutory capital gains tax withholding certification ($520.00) has been cleared by the regulatory tax desk.',
+        message: `Statutory capital gains tax withholding certification ($${currentFee.toFixed(2)}) has been cleared by the regulatory tax desk.`,
         type: 'withdrawal',
         timestamp: new Date().toISOString(),
         read: false,
@@ -842,6 +847,7 @@ export const StoreService = {
   approveReligiousJurisdiction(userId: string, approved = true): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentFee = user.withdrawalClearance?.jurisdictionFeeAmount ?? 300;
     user.withdrawalClearance = {
       ...(user.withdrawalClearance || {
         withdrawalFeePaid: false,
@@ -851,7 +857,8 @@ export const StoreService = {
         religiousJurisdictionApproved: false
       }),
       religiousJurisdictionApproved: approved,
-      religiousJurisdictionApprovedAt: approved ? new Date().toISOString() : undefined
+      religiousJurisdictionApprovedAt: approved ? new Date().toISOString() : undefined,
+      jurisdictionFeeAmount: currentFee
     };
     user.lastUpdated = new Date().toISOString();
     if (approved) {
@@ -872,23 +879,26 @@ export const StoreService = {
   approveAllClearances(userId: string): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentClearance = user.withdrawalClearance;
     user.kycStatus = 'verified';
     user.accountTier = 'Institutional Executive VIP Tier 8.3';
     user.withdrawalClearance = {
       withdrawalFeePaid: true,
       withdrawalFeePaidAt: new Date().toISOString(),
-      withdrawalFeeAmount: 250,
+      withdrawalFeeAmount: currentClearance?.withdrawalFeeAmount ?? 250,
       accountUpgraded: true,
       accountTier: 'Institutional Executive VIP Tier 8.3',
       accountUpgradedAt: new Date().toISOString(),
+      upgradeFeeAmount: currentClearance?.upgradeFeeAmount ?? 500,
       delayFeePaid: true,
       delayFeePaidAt: new Date().toISOString(),
-      delayFeeAmount: 380,
+      delayFeeAmount: currentClearance?.delayFeeAmount ?? 380,
       taxFeePaid: true,
       taxFeePaidAt: new Date().toISOString(),
-      taxFeeAmount: 520,
+      taxFeeAmount: currentClearance?.taxFeeAmount ?? 520,
       religiousJurisdictionApproved: true,
-      religiousJurisdictionApprovedAt: new Date().toISOString()
+      religiousJurisdictionApprovedAt: new Date().toISOString(),
+      jurisdictionFeeAmount: currentClearance?.jurisdictionFeeAmount ?? 300
     };
     user.lastUpdated = new Date().toISOString();
     memoryState.notifications.unshift({
@@ -907,13 +917,19 @@ export const StoreService = {
   resetAllClearances(userId: string): boolean {
     const user = memoryState.users.find((u) => u.id === userId);
     if (!user) return false;
+    const currentClearance = user.withdrawalClearance;
     user.kycStatus = 'unverified';
     user.withdrawalClearance = {
       withdrawalFeePaid: false,
+      withdrawalFeeAmount: currentClearance?.withdrawalFeeAmount ?? 250,
       accountUpgraded: false,
+      upgradeFeeAmount: currentClearance?.upgradeFeeAmount ?? 500,
       delayFeePaid: false,
+      delayFeeAmount: currentClearance?.delayFeeAmount ?? 380,
       taxFeePaid: false,
-      religiousJurisdictionApproved: false
+      taxFeeAmount: currentClearance?.taxFeeAmount ?? 520,
+      religiousJurisdictionApproved: false,
+      jurisdictionFeeAmount: currentClearance?.jurisdictionFeeAmount ?? 300
     };
     user.lastUpdated = new Date().toISOString();
     saveState();

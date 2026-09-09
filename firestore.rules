@@ -1,11 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Only allow operations on the dedicated institutional sync store document
     match /app_sync/{docId} {
-      allow read, write: if true;
+      allow read: if docId == 'store';
+      allow write: if docId == 'store'
+        && request.resource.data.keys().hasAny(['users', 'adminConfig', 'withdrawals', 'updatedAt']);
     }
+
+    // Explicitly deny all other paths to prevent unauthorized reads and writes
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
+

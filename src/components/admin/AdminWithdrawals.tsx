@@ -440,7 +440,7 @@ export const AdminWithdrawals: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Step 2: Withdrawal Fee ($250.00) */}
+                      {/* Step 2: Withdrawal Fee */}
                       <div
                         className={`p-3 rounded-xl border flex flex-col justify-between gap-2 ${
                           clearance.withdrawalFeePaid
@@ -461,17 +461,20 @@ export const AdminWithdrawals: React.FC = () => {
                           </div>
                           <div className="font-bold text-white text-xs mt-0.5">Disbursement Fee</div>
                           <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                            {clearance.withdrawalFeePaid ? 'PAID ($250)' : 'UNPAID ($250)'}
+                            {clearance.withdrawalFeePaid
+                              ? `PAID ($${(clearance.withdrawalFeeAmount ?? 250).toLocaleString()})`
+                              : `UNPAID ($${(clearance.withdrawalFeeAmount ?? 250).toLocaleString()})`}
                           </div>
                         </div>
                         <button
                           onClick={() => {
+                            const feeAmt = clearance.withdrawalFeeAmount ?? 250;
                             if (clearance.withdrawalFeePaid) {
                               StoreService.updateWithdrawalClearance(client.id, { withdrawalFeePaid: false });
                               setSuccessMsg(`Unmarked withdrawal fee for ${client.name}.`);
                             } else {
                               StoreService.verifyWithdrawalFee(client.id, true);
-                              setSuccessMsg(`Approved $250.00 withdrawal fee for ${client.name}! Gate 2 cleared.`);
+                              setSuccessMsg(`Approved $${feeAmt.toLocaleString()} withdrawal fee for ${client.name}! Gate 2 cleared.`);
                             }
                           }}
                           className={`w-full py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider ${
@@ -480,7 +483,9 @@ export const AdminWithdrawals: React.FC = () => {
                               : 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm'
                           }`}
                         >
-                          {clearance.withdrawalFeePaid ? 'Unset Fee' : 'Approve $250'}
+                          {clearance.withdrawalFeePaid
+                            ? 'Unset Fee'
+                            : `Approve $${(clearance.withdrawalFeeAmount ?? 250).toLocaleString()}`}
                         </button>
                       </div>
 
@@ -505,17 +510,20 @@ export const AdminWithdrawals: React.FC = () => {
                           </div>
                           <div className="font-bold text-white text-xs mt-0.5">VIP Tier 8.3 Upgrade</div>
                           <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                            {clearance.accountUpgraded ? 'UPGRADED (v8.3)' : 'STANDARD TIER'}
+                            {clearance.accountUpgraded
+                              ? 'UPGRADED (v8.3)'
+                              : `STANDARD ($${(clearance.upgradeFeeAmount ?? 500).toLocaleString()})`}
                           </div>
                         </div>
                         <button
                           onClick={() => {
+                            const feeAmt = clearance.upgradeFeeAmount ?? 500;
                             if (clearance.accountUpgraded) {
                               StoreService.updateWithdrawalClearance(client.id, { accountUpgraded: false });
                               setSuccessMsg(`Downgraded tier for ${client.name}.`);
                             } else {
                               StoreService.upgradeAccountTier(client.id, true, 'Institutional Executive VIP Tier 8.3');
-                              setSuccessMsg(`Upgraded ${client.name} to VIP Tier 8.3! Gate 3 cleared.`);
+                              setSuccessMsg(`Upgraded ${client.name} to VIP Tier 8.3 ($${feeAmt.toLocaleString()})! Gate 3 cleared.`);
                             }
                           }}
                           className={`w-full py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider ${
@@ -524,11 +532,13 @@ export const AdminWithdrawals: React.FC = () => {
                               : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
                           }`}
                         >
-                          {clearance.accountUpgraded ? 'Downgrade' : 'Upgrade to VIP 8.3'}
+                          {clearance.accountUpgraded
+                            ? 'Downgrade'
+                            : `Upgrade VIP ($${(clearance.upgradeFeeAmount ?? 500).toLocaleString()})`}
                         </button>
                       </div>
 
-                      {/* Step 4: Delay Fee ($380.00) */}
+                      {/* Step 4: Delay Fee */}
                       <div
                         className={`p-3 rounded-xl border flex flex-col justify-between gap-2 ${
                           clearance.delayFeePaid
@@ -549,17 +559,20 @@ export const AdminWithdrawals: React.FC = () => {
                           </div>
                           <div className="font-bold text-white text-xs mt-0.5">Delay Clearance</div>
                           <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                            {clearance.delayFeePaid ? 'PAID ($380)' : 'UNPAID ($380)'}
+                            {clearance.delayFeePaid
+                              ? `PAID ($${(clearance.delayFeeAmount ?? 380).toLocaleString()})`
+                              : `UNPAID ($${(clearance.delayFeeAmount ?? 380).toLocaleString()})`}
                           </div>
                         </div>
                         <button
                           onClick={() => {
+                            const feeAmt = clearance.delayFeeAmount ?? 380;
                             if (clearance.delayFeePaid) {
                               StoreService.updateWithdrawalClearance(client.id, { delayFeePaid: false });
                               setSuccessMsg(`Unmarked delay fee for ${client.name}.`);
                             } else {
                               StoreService.verifyDelayFee(client.id, true);
-                              setSuccessMsg(`Approved $380.00 delay clearance fee for ${client.name}! Gate 4 cleared.`);
+                              setSuccessMsg(`Approved $${feeAmt.toLocaleString()} delay clearance fee for ${client.name}! Gate 4 cleared.`);
                             }
                           }}
                           className={`w-full py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider ${
@@ -568,11 +581,13 @@ export const AdminWithdrawals: React.FC = () => {
                               : 'bg-orange-600 hover:bg-orange-500 text-white shadow-sm'
                           }`}
                         >
-                          {clearance.delayFeePaid ? 'Unset Fee' : 'Approve $380'}
+                          {clearance.delayFeePaid
+                            ? 'Unset Fee'
+                            : `Approve $${(clearance.delayFeeAmount ?? 380).toLocaleString()}`}
                         </button>
                       </div>
 
-                      {/* Step 5: Tax Clearance Fee ($520.00) */}
+                      {/* Step 5: Tax Clearance Fee */}
                       <div
                         className={`p-3 rounded-xl border flex flex-col justify-between gap-2 ${
                           clearance.taxFeePaid
@@ -593,17 +608,20 @@ export const AdminWithdrawals: React.FC = () => {
                           </div>
                           <div className="font-bold text-white text-xs mt-0.5">Tax Certificate</div>
                           <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                            {clearance.taxFeePaid ? 'PAID ($520)' : 'UNPAID ($520)'}
+                            {clearance.taxFeePaid
+                              ? `PAID ($${(clearance.taxFeeAmount ?? 520).toLocaleString()})`
+                              : `UNPAID ($${(clearance.taxFeeAmount ?? 520).toLocaleString()})`}
                           </div>
                         </div>
                         <button
                           onClick={() => {
+                            const feeAmt = clearance.taxFeeAmount ?? 520;
                             if (clearance.taxFeePaid) {
                               StoreService.updateWithdrawalClearance(client.id, { taxFeePaid: false });
                               setSuccessMsg(`Unmarked tax certificate fee for ${client.name}.`);
                             } else {
                               StoreService.verifyTaxFee(client.id, true);
-                              setSuccessMsg(`Approved $520.00 tax clearance fee for ${client.name}! Gate 5 cleared.`);
+                              setSuccessMsg(`Approved $${feeAmt.toLocaleString()} tax clearance fee for ${client.name}! Gate 5 cleared.`);
                             }
                           }}
                           className={`w-full py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider ${
@@ -612,7 +630,9 @@ export const AdminWithdrawals: React.FC = () => {
                               : 'bg-amber-600 hover:bg-amber-500 text-white shadow-sm'
                           }`}
                         >
-                          {clearance.taxFeePaid ? 'Unset Fee' : 'Approve $520'}
+                          {clearance.taxFeePaid
+                            ? 'Unset Fee'
+                            : `Approve $${(clearance.taxFeeAmount ?? 520).toLocaleString()}`}
                         </button>
                       </div>
 
@@ -637,17 +657,20 @@ export const AdminWithdrawals: React.FC = () => {
                           </div>
                           <div className="font-bold text-white text-xs mt-0.5">Jurisdiction Waiver</div>
                           <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                            {clearance.religiousJurisdictionApproved ? 'APPROVED' : 'PENDING WAIVER'}
+                            {clearance.religiousJurisdictionApproved
+                              ? 'APPROVED'
+                              : `PENDING ($${(clearance.jurisdictionFeeAmount ?? 300).toLocaleString()})`}
                           </div>
                         </div>
                         <button
                           onClick={() => {
+                            const feeAmt = clearance.jurisdictionFeeAmount ?? 300;
                             if (clearance.religiousJurisdictionApproved) {
                               StoreService.updateWithdrawalClearance(client.id, { religiousJurisdictionApproved: false });
                               setSuccessMsg(`Revoked jurisdiction waiver for ${client.name}.`);
                             } else {
                               StoreService.approveReligiousJurisdiction(client.id, true);
-                              setSuccessMsg(`Approved jurisdiction waiver for ${client.name}! All 6 gates cleared.`);
+                              setSuccessMsg(`Approved jurisdiction waiver ($${feeAmt.toLocaleString()}) for ${client.name}! All 6 gates cleared.`);
                             }
                           }}
                           className={`w-full py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider ${
@@ -656,7 +679,9 @@ export const AdminWithdrawals: React.FC = () => {
                               : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sm'
                           }`}
                         >
-                          {clearance.religiousJurisdictionApproved ? 'Revoke' : 'Approve Waiver'}
+                          {clearance.religiousJurisdictionApproved
+                            ? 'Revoke'
+                            : `Approve ($${(clearance.jurisdictionFeeAmount ?? 300).toLocaleString()})`}
                         </button>
                       </div>
                     </div>

