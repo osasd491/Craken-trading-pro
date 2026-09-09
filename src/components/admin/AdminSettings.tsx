@@ -22,6 +22,7 @@ export const AdminSettings: React.FC = () => {
   const config = storeState.adminConfig;
 
   // Form states
+  const [adminEmail, setAdminEmail] = useState(config.adminEmail || 'osasd491@gmail.com');
   const [adminPassword, setAdminPassword] = useState(config.adminPassword);
   const [supportEmail, setSupportEmail] = useState(config.supportEmail);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(config.twoFactorEnabled);
@@ -40,7 +41,7 @@ export const AdminSettings: React.FC = () => {
     e.preventDefault();
 
     StoreService.updateAdminConfig({
-      adminEmail: config.adminEmail,
+      adminEmail: adminEmail.trim(),
       adminPassword: adminPassword.trim(),
       supportEmail: supportEmail.trim(),
       twoFactorEnabled,
@@ -122,7 +123,27 @@ export const AdminSettings: React.FC = () => {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-400 block mb-1">
+                Executive Login Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-amber-400 absolute left-3 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                  placeholder="osasd491@gmail.com"
+                />
+              </div>
+              <span className="text-[10px] text-slate-500 mt-1 block">
+                Required for executive desk sign-in authentication.
+              </span>
+            </div>
+
             <div>
               <label className="text-xs font-semibold text-slate-400 block mb-1">
                 Executive Access Password

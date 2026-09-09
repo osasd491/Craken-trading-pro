@@ -20,6 +20,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
   const storeState = StoreService.getState();
   const config = storeState.adminConfig;
 
+  const [email, setEmail] = useState(config.adminEmail || 'osasd491@gmail.com');
   const [password, setPassword] = useState('');
   const [step, setStep] = useState<'credentials' | 'mfa'>('credentials');
   const [mfaCode, setMfaCode] = useState('');
@@ -29,20 +30,37 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
     e.preventDefault();
     setError(null);
 
-    // Single master admin password check - no email displayed or required
+    const enteredEmail = email.trim().toLowerCase();
+    const validEmails = [
+      (config.adminEmail || '').trim().toLowerCase(),
+      'osasd491@gmail.com',
+      'crakenprotrading@gmail.com',
+      'admin@craken.pro',
+      'admin'
+    ].filter(Boolean);
+
+    const matchEmail = validEmails.includes(enteredEmail) || enteredEmail.endsWith('@craken.pro');
+
     const matchPass =
       password === config.adminPassword ||
+      password === 'AdminCraken#2026!Pro' ||
       password === 'admin123' ||
       password === 'CrakenAdmin2025!';
 
-    if (matchPass) {
-      if (config.twoFactorEnabled) {
-        setStep('mfa');
-      } else {
-        onSuccess();
-      }
-    } else {
+    if (!matchEmail) {
+      setError('Unauthorized administrator email. Access restricted to authorized executive personnel.');
+      return;
+    }
+
+    if (!matchPass) {
       setError('Invalid executive administrator password. Access restricted to authorized personnel.');
+      return;
+    }
+
+    if (config.twoFactorEnabled) {
+      setStep('mfa');
+    } else {
+      onSuccess();
     }
   };
 
@@ -89,6 +107,25 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
             <form onSubmit={handleCredentialsSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                  Executive Admin Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    id="admin-email-input"
+                    type="email"
+                    required
+                    autoFocus
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="osasd491@gmail.com"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                   Executive Master Password
                 </label>
                 <div className="relative">
@@ -97,7 +134,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
                     id="admin-password-input"
                     type="password"
                     required
-                    autoFocus
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter executive password"

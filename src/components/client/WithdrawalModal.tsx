@@ -676,20 +676,18 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                 Dismiss
               </button>
 
-              {activeGateModal.type !== 'KYC' && activeGateModal.type !== 'PENDING_SUCCESS' && (
+              {(activeGateModal.type === 'WITHDRAWAL_FEE' ||
+                activeGateModal.type === 'DELAY_FEE' ||
+                activeGateModal.type === 'TAX_FEE') && (
                 <button
                   type="button"
                   onClick={() => {
                     const stageNum =
                       activeGateModal.type === 'WITHDRAWAL_FEE'
                         ? 2
-                        : activeGateModal.type === 'ACCOUNT_UPGRADE'
-                        ? 3
                         : activeGateModal.type === 'DELAY_FEE'
                         ? 4
-                        : activeGateModal.type === 'TAX_FEE'
-                        ? 5
-                        : 6;
+                        : 5;
                     setFeePaymentModalConfig({
                       isOpen: true,
                       stageNumber: stageNum,
