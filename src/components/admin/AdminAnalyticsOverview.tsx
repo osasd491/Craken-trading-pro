@@ -13,10 +13,10 @@ import {
   CheckCircle2,
   Clock
 } from 'lucide-react';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 
 export const AdminAnalyticsOverview: React.FC = () => {
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const users = storeState.users;
   const withdrawals = storeState.withdrawals;
   const ledger = storeState.ledger;

@@ -20,10 +20,12 @@ import {
   Ban,
   Wallet,
   Gift,
-  UserPlus
+  UserPlus,
+  RefreshCw,
+  Cloud
 } from 'lucide-react';
 import { ClientUser } from '../../types';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 
 interface AdminUserManagementProps {
   onAccessClientPlatform: (user: ClientUser) => void;
@@ -71,7 +73,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   const [newClientBonus, setNewClientBonus] = useState('0');
   const [addClientMsg, setAddClientMsg] = useState<string | null>(null);
 
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const users = storeState.users;
 
   const filteredUsers = users.filter((u) => {
@@ -220,11 +222,27 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <Cloud className="w-3.5 h-3.5" />
+            <span>Cloud Sync Active</span>
+          </div>
+
+          <button
+            onClick={() => {
+              window.location.reload();
+            }}
+            title="Refresh database view"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+
           <button
             onClick={() => setShowAddClientModal(true)}
             id="admin-add-client-btn"
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>Register New Client</span>

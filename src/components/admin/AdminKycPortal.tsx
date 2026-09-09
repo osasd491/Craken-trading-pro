@@ -11,10 +11,10 @@ import {
   X
 } from 'lucide-react';
 import { ClientUser } from '../../types';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 
 export const AdminKycPortal: React.FC = () => {
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const users = storeState.users;
 
   const [selectedUser, setSelectedUser] = useState<ClientUser | null>(null);

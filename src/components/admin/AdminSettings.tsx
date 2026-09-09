@@ -15,10 +15,10 @@ import {
   Database,
   RefreshCw
 } from 'lucide-react';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 
 export const AdminSettings: React.FC = () => {
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const config = storeState.adminConfig;
 
   // Form states

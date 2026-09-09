@@ -12,10 +12,10 @@ import {
   Sparkles
 } from 'lucide-react';
 import { ClientUser } from '../../types';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 
 export const AdminBoltChat: React.FC = () => {
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const users = storeState.users;
   const chats = storeState.chats;
 

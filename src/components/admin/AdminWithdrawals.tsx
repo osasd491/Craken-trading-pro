@@ -24,10 +24,10 @@ import {
   UserCheck
 } from 'lucide-react';
 import { WithdrawalRecord, ClientUser } from '../../types';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 
 export const AdminWithdrawals: React.FC = () => {
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const withdrawals = storeState.withdrawals;
   const users = storeState.users;
 

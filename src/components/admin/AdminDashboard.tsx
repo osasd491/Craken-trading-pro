@@ -15,7 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { ClientUser } from '../../types';
-import { StoreService } from '../../services/store';
+import { StoreService, useStore } from '../../services/store';
 import { AdminAnalyticsOverview } from './AdminAnalyticsOverview';
 import { AdminUserManagement } from './AdminUserManagement';
 import { AdminWithdrawals } from './AdminWithdrawals';
@@ -35,7 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<'analytics' | 'users' | 'withdrawals' | 'kyc' | 'bolt' | 'settings'>('analytics');
   const [currentTime, setCurrentTime] = useState(new Date().toUTCString());
 
-  const storeState = StoreService.getState();
+  const storeState = useStore();
   const config = storeState.adminConfig;
   const pendingWdCount = storeState.withdrawals.filter((w) => w.status === 'PENDING').length;
   const pendingKycCount = storeState.users.filter((u) => u.kycStatus === 'pending').length;

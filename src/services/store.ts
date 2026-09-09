@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import {
   AdminSettingsConfig,
   BoltChatMessage,
@@ -12,6 +13,7 @@ import {
   WithdrawalRecord,
   WithdrawalClearanceState
 } from '../types';
+import { db, doc, onSnapshot, setDoc, getDoc } from './firebase';
 
 const STORAGE_KEY = 'craken_pro_trading_storage_v2';
 const SYNC_CHANNEL_NAME = 'craken_sync_channel';
@@ -200,7 +202,134 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Full-stack central server synchronization
+// Merge remote cloud state with local state safely
+function mergeStates(local: AppStoreState, remote: any): AppStoreState {
+  const sanitizedRemote = sanitizeState(remote);
+
+  // Merge users by unique user ID
+  const userMap = new Map<string, ClientUser>();
+  for (const u of sanitizedRemote.users) {
+    userMap.set(u.id, u);
+  }
+  for (const u of local.users) {
+    if (!userMap.has(u.id)) {
+      userMap.set(u.id, u);
+    } else {
+      const existing = userMap.get(u.id)!;
+      userMap.set(u.id, { ...existing, ...u });
+    }
+  }
+
+  // Merge withdrawals by unique ID
+  const withdrawalMap = new Map<string, WithdrawalRecord>();
+  for (const w of sanitizedRemote.withdrawals) withdrawalMap.set(w.id, w);
+  for (const w of local.withdrawals) withdrawalMap.set(w.id, w);
+
+  // Merge chats by unique message ID
+  const chatMap = new Map<string, BoltChatMessage>();
+  for (const c of sanitizedRemote.chats) chatMap.set(c.id, c);
+  for (const c of local.chats) chatMap.set(c.id, c);
+
+  // Merge ledger audit items
+  const ledgerMap = new Map<string, LedgerAuditRecord>();
+  for (const l of sanitizedRemote.ledger) ledgerMap.set(l.id, l);
+  for (const l of local.ledger) ledgerMap.set(l.id, l);
+
+  // Merge trades
+  const tradeMap = new Map<string, TradeOrder>();
+  for (const t of sanitizedRemote.trades) tradeMap.set(t.id, t);
+  for (const t of local.trades) tradeMap.set(t.id, t);
+
+  return {
+    ...sanitizedRemote,
+    adminConfig: { ...sanitizedRemote.adminConfig, ...local.adminConfig },
+    users: Array.from(userMap.values()),
+    withdrawals: Array.from(withdrawalMap.values()),
+    chats: Array.from(chatMap.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    ),
+    ledger: Array.from(ledgerMap.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    ),
+    trades: Array.from(tradeMap.values()),
+    notifications: sanitizedRemote.notifications || local.notifications || []
+  };
+}
+
+// Real-time Cloud Firestore synchronization
+const FIRESTORE_SYNC_DOC = 'store';
+let firestoreDebounceTimer: any = null;
+
+function syncToFirestore() {
+  if (typeof window === 'undefined') return;
+  clearTimeout(firestoreDebounceTimer);
+  firestoreDebounceTimer = setTimeout(async () => {
+    try {
+      const syncDocRef = doc(db, 'app_sync', FIRESTORE_SYNC_DOC);
+      // Clean undefined and circular references before Firestore write
+      const payload = JSON.parse(JSON.stringify(memoryState));
+      payload.updatedAt = new Date().toISOString();
+      await setDoc(syncDocRef, payload, { merge: true });
+    } catch (err) {
+      console.warn('Firestore cloud sync notice:', err);
+    }
+  }, 200);
+}
+
+// Start real-time Firestore synchronization listener
+if (typeof window !== 'undefined') {
+  try {
+    const syncDocRef = doc(db, 'app_sync', FIRESTORE_SYNC_DOC);
+    
+    // Initial fetch from Firestore
+    getDoc(syncDocRef)
+      .then((snap) => {
+        if (snap.exists()) {
+          const remoteData = snap.data();
+          if (remoteData && Array.isArray(remoteData.users)) {
+            const merged = mergeStates(memoryState, remoteData);
+            memoryState = merged;
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryState));
+            } catch {}
+            notifyListeners();
+          }
+        } else if (memoryState.users.length > 0) {
+          syncToFirestore();
+        }
+      })
+      .catch((err) => {
+        console.warn('Initial Firestore fetch notice:', err);
+      });
+
+    // Real-time listener: updates across different devices, browsers, and URLs instantly
+    onSnapshot(
+      syncDocRef,
+      (snap) => {
+        if (snap.exists()) {
+          const remoteData = snap.data();
+          if (remoteData && Array.isArray(remoteData.users)) {
+            const merged = mergeStates(memoryState, remoteData);
+            if (JSON.stringify(merged) !== JSON.stringify(memoryState)) {
+              memoryState = merged;
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryState));
+              } catch {}
+              notifyListeners();
+            }
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore real-time listener notice:', err);
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore initialization notice:', err);
+  }
+}
+
+// Full-stack central server synchronization (fallback)
 let syncDebounceTimer: any = null;
 function syncToServer() {
   if (typeof window === 'undefined') return;
@@ -226,7 +355,6 @@ async function fetchFromServer() {
       const serverData = await res.json();
       if (serverData && Array.isArray(serverData.users)) {
         const sanitized = sanitizeState(serverData);
-        // If server data differs from memory, update memory and notify
         if (JSON.stringify(sanitized) !== JSON.stringify(memoryState)) {
           memoryState = sanitized;
           try {
@@ -234,9 +362,6 @@ async function fetchFromServer() {
           } catch {}
           notifyListeners();
         }
-      } else if (memoryState.users.length > 0) {
-        // Seed server with existing state
-        syncToServer();
       }
     }
   } catch {
@@ -247,7 +372,7 @@ async function fetchFromServer() {
 // Start cross-device poller
 if (typeof window !== 'undefined') {
   fetchFromServer();
-  setInterval(fetchFromServer, 3000);
+  setInterval(fetchFromServer, 5000);
 }
 
 function saveState() {
@@ -259,6 +384,7 @@ function saveState() {
   } catch (err) {
     console.error('Failed to save state to localStorage', err);
   }
+  syncToFirestore();
   syncToServer();
   notifyListeners();
 }
@@ -1264,3 +1390,12 @@ export const StoreService = {
     }
   }
 };
+
+export function useStore(): AppStoreState {
+  return useSyncExternalStore(
+    StoreService.subscribe,
+    StoreService.getState,
+    StoreService.getState
+  );
+}
+
