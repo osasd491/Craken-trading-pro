@@ -20,7 +20,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
   const storeState = StoreService.getState();
   const config = storeState.adminConfig;
 
-  const [email, setEmail] = useState(config.adminEmail || 'osasd491@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [step, setStep] = useState<'credentials' | 'mfa'>('credentials');
   const [mfaCode, setMfaCode] = useState('');
@@ -118,7 +118,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
                     autoFocus
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="osasd491@gmail.com"
+                    placeholder="Enter executive email address"
+                    autoComplete="email"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
