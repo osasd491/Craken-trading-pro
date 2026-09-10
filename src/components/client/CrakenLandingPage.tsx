@@ -63,19 +63,19 @@ export const CrakenLandingPage: React.FC<CrakenLandingPageProps> = ({
     },
     {
       q: 'How fast are crypto deposits and bank wire withdrawals processed?',
-      a: 'Cryptocurrency deposits (BTC, ETH, USDT, SOL) are credited immediately upon standard network confirmation (typically 1-3 blocks). Wire payouts are executed via Fedwire, SEPA Instant, and international SWIFT channels once your account compliance clearance steps are satisfied.'
+      a: 'Cryptocurrency deposits (BTC, ETH, USDT, SOL) are credited immediately upon standard network confirmation (typically 1-3 blocks). Wire payouts are executed swiftly via Fedwire, SEPA Instant, and international SWIFT banking networks.'
     },
     {
-      q: 'Which cryptocurrencies can I trade and use to pay fees?',
-      a: 'Craken Pro supports all leading tier-1 digital assets including Bitcoin (BTC), Ethereum (ETH), Tether (USDT), Solana (SOL), Ripple (XRP), and Cardano (ADA), along with multi-currency fiat settlements (USD, EUR, GBP, CAD, AUD, JPY).'
+      q: 'Which cryptocurrencies and fiat currencies are supported on Craken Pro?',
+      a: 'Craken Pro supports all leading tier-1 digital assets including Bitcoin (BTC), Ethereum (ETH), Tether (USDT), Solana (SOL), Ripple (XRP), and Cardano (ADA), paired with major global fiat currencies including USD, EUR, GBP, CAD, AUD, and JPY.'
     },
     {
       q: 'How does Craken Pro safeguard institutional and retail funds?',
       a: '98%+ of client digital reserves are stored in geographically distributed, air-gapped cold storage vaults guarded by multi-signature threshold cryptography and institutional grade Lloyd’s of London syndicate insurance coverage.'
     },
     {
-      q: 'What are the compliance requirements for fund withdrawal?',
-      a: 'In accordance with FinCEN, SEC, and international anti-money laundering (AML) standards, accounts progress through sequential verification steps: Tier-1 KYC identity verification, disbursement clearance, tier qualification, settlement delay settlement, and statutory tax reporting certification.'
+      q: 'What trading tools and order execution capabilities are available?',
+      a: 'Craken Pro offers real-time order books, interactive multi-timeframe TradingView charts, instant market and limit execution, automated margin risk calculations, and institutional-grade low-latency trade routing.'
     }
   ];
 
