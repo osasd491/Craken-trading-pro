@@ -634,9 +634,10 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
       {/* ================= LAZY COMPLIANCE DIRECTIVE MODAL ================= */}
       {/* Appears ONLY after user submits withdrawal attempt */}
       {activeGateModal && (
-        <div className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#0b1325] border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
-            <div className="flex items-center gap-3 border-b border-[#182640] pb-4">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/85 backdrop-blur-md p-3 sm:p-6 overscroll-contain animate-in fade-in">
+          <div className="min-h-full flex items-start justify-center py-6 sm:py-12">
+            <div className="bg-[#0b1325] border border-amber-500/40 rounded-3xl max-w-xl w-full p-5 sm:p-8 space-y-5 shadow-2xl relative my-auto">
+              <div className="flex items-center gap-3 border-b border-[#182640] pb-4">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
                 {activeGateModal.type === 'SUCCESS_PENDING' ? (
                   <CheckCircle2 className="w-6 h-6 text-emerald-400" />
@@ -732,6 +733,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Crypto Fee Payment Modal Drawer */}

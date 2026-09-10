@@ -686,22 +686,24 @@ export const CrakenLandingPage: React.FC<CrakenLandingPageProps> = ({
 
       {/* 10. Interactive Auth Modal */}
       {authModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md">
-            <button
-              onClick={() => setAuthModalOpen(false)}
-              className="absolute right-4 top-4 z-20 p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <ClientAuth
-              onSuccessLogin={(user) => {
-                setAuthModalOpen(false);
-                onSuccessLogin(user);
-              }}
-              markets={sortedMarkets}
-              initialMode={authMode}
-            />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md p-3 sm:p-4 overscroll-contain animate-in fade-in duration-200">
+          <div className="min-h-full flex items-start justify-center py-6 sm:py-12">
+            <div className="relative w-full max-w-md my-auto">
+              <button
+                onClick={() => setAuthModalOpen(false)}
+                className="absolute right-4 top-4 z-20 p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <ClientAuth
+                onSuccessLogin={(user) => {
+                  setAuthModalOpen(false);
+                  onSuccessLogin(user);
+                }}
+                markets={sortedMarkets}
+                initialMode={authMode}
+              />
+            </div>
           </div>
         </div>
       )}

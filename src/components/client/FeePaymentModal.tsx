@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Wallet,
@@ -90,6 +90,20 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
     selectedCrypto === 'BTC' ? 6 : selectedCrypto === 'ETH' ? 5 : selectedCrypto === 'SOL' ? 4 : 2
   );
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // When opened, guarantee scroll container is reset to top position
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+    // Prevent background scrolling while modal is active
+    document.body.classList.add('overflow-hidden');
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, []);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(walletAddress);
     setCopied(true);
@@ -117,28 +131,34 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-[#0b1325] border border-[#1d2d4a] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 my-8">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 font-bold">
-              <ShieldCheck className="w-5 h-5" />
+    <div
+      ref={scrollContainerRef}
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md p-3 sm:p-6 overscroll-contain touch-pan-y"
+    >
+      <div className="min-h-full flex items-start justify-center py-6 sm:py-12">
+        <div className="relative w-full max-w-lg bg-[#0b1325] border border-[#1d2d4a] rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 my-auto">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-slate-800 pb-3 sm:pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 font-bold shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">
+                  Regulatory Settlement Protocol
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-white leading-snug">{stageTitle}</h3>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-                Regulatory Settlement Protocol
-              </span>
-              <h3 className="text-base sm:text-lg font-bold text-white">{stageTitle}</h3>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer shrink-0 transition-colors"
+              title="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
         {submittedSuccess ? (
           <div className="py-8 space-y-4 text-center">
@@ -256,26 +276,36 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting || !txid.trim()}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Clock className="w-4 h-4 animate-spin" />
-                    <span>Verifying with Brokerage Ledger...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileCheck className="w-4 h-4" />
-                    <span>Submit {selectedCrypto} Fee Payment Proof</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-1/3 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Dismiss
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !txid.trim()}
+                  className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Clock className="w-4 h-4 animate-spin" />
+                      <span>Verifying with Brokerage Ledger...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileCheck className="w-4 h-4" />
+                      <span>Submit Payment Proof</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </>
         )}
+        </div>
       </div>
     </div>
   );

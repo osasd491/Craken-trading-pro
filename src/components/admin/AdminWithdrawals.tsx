@@ -970,9 +970,10 @@ export const AdminWithdrawals: React.FC = () => {
 
       {/* Edit Client Clearance Fees Modal */}
       {editingFeesUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-md bg-[#0b1325] border border-[#1d2d4a] rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md p-3 sm:p-4 overscroll-contain">
+          <div className="min-h-full flex items-start justify-center py-6 sm:py-12">
+            <div className="relative w-full max-w-md bg-[#0b1325] border border-[#1d2d4a] rounded-3xl p-6 shadow-2xl space-y-4 my-auto">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Sliders className="w-5 h-5 text-blue-400" />
                 <div>
@@ -1082,6 +1083,7 @@ export const AdminWithdrawals: React.FC = () => {
             </form>
           </div>
         </div>
+      </div>
       )}
     </div>
   );
