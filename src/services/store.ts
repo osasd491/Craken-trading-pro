@@ -1239,6 +1239,7 @@ export const StoreService = {
     routingNumber?: string;
     paypalEmail?: string;
     amount: number;
+    fee?: number;
   }): { success: boolean; message: string; withdrawal?: WithdrawalRecord } {
     const user = memoryState.users.find(u => u.id === params.userId);
     if (!user) return { success: false, message: 'User account not found' };

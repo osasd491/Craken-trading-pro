@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { ClientUser } from '../../types';
 import { StoreService } from '../../services/store';
+import { CryptoIcon } from '../shared/CryptoIcon';
+import { translations } from '../../services/translations';
 
 interface FeePaymentModalProps {
   user: ClientUser;
@@ -22,41 +24,38 @@ interface FeePaymentModalProps {
   stageTitle: string;
   stageDescription: string;
   requiredFeeUsd: number;
+  currentLanguage?: string;
   onClose: () => void;
   onPaymentSubmitted: () => void;
 }
 
 const CRYPTO_PAYMENT_OPTIONS = [
   {
-    symbol: 'BTC',
+    symbol: 'BTC' as const,
     name: 'Bitcoin',
     network: 'Bitcoin Native SegWit',
     usdRate: 94850,
-    color: 'amber',
     badge: 'Fastest Settlement'
   },
   {
-    symbol: 'ETH',
+    symbol: 'ETH' as const,
     name: 'Ethereum',
     network: 'Ethereum (ERC20)',
     usdRate: 3420,
-    color: 'indigo',
     badge: 'Smart Clearance'
   },
   {
-    symbol: 'USDT',
+    symbol: 'USDT' as const,
     name: 'Tether USD (TRC20)',
     network: 'TRON (TRC20)',
     usdRate: 1.0,
-    color: 'emerald',
     badge: 'Zero Volatility'
   },
   {
-    symbol: 'SOL',
+    symbol: 'SOL' as const,
     name: 'Solana',
     network: 'Solana Mainnet',
     usdRate: 188,
-    color: 'purple',
     badge: 'Ultra Low Gas'
   }
 ];
@@ -67,11 +66,13 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
   stageTitle,
   stageDescription,
   requiredFeeUsd,
+  currentLanguage = 'en',
   onClose,
   onPaymentSubmitted
 }) => {
   const storeState = StoreService.getState();
   const config = storeState.adminConfig;
+  const t = translations[currentLanguage] || translations.en;
 
   const [selectedCrypto, setSelectedCrypto] = useState<'BTC' | 'ETH' | 'USDT' | 'SOL'>('BTC');
   const [txid, setTxid] = useState('');
@@ -133,56 +134,50 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {submittedSuccess ? (
-          <div className="py-8 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto animate-pulse">
+          <div className="py-8 space-y-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h4 className="text-lg font-bold text-white">Payment Proof Registered!</h4>
-            <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-              Your {selectedCrypto} clearance fee payment of{' '}
-              <strong className="text-emerald-400 font-mono">
-                {cryptoAmount} {selectedCrypto} (${requiredFeeUsd.toLocaleString()} USD)
-              </strong>{' '}
-              has been submitted to the compliance audit desk.
-            </p>
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 font-mono">
-              TXID: {txid}
-            </div>
-            <div className="text-[11px] text-amber-400 flex items-center justify-center gap-1.5 font-medium">
-              <Clock className="w-3.5 h-3.5 animate-spin" />
-              <span>Institutional clearance verification in progress...</span>
+            <div>
+              <h4 className="text-lg font-bold text-white">{t.paymentProofRegistered}</h4>
+              <p className="text-xs text-slate-300 max-w-sm mx-auto mt-2 leading-relaxed">
+                {t.paymentProofSubmittedMsg}
+              </p>
             </div>
           </div>
         ) : (
           <>
-            {/* Fee Overview Card */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+            {/* Fee Amount & Directive Info */}
+            <div className="p-4 rounded-2xl bg-[#0e182e] border border-[#172540] flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Required Clearance Amount</span>
-                <div className="text-2xl font-bold font-mono text-white">
-                  ${requiredFeeUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  <span className="text-xs text-slate-400 font-normal ml-1">USD</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400">
+                  {t.requiredClearanceAmount}
+                </span>
+                <div className="text-2xl font-black font-mono text-amber-400">
+                  ${requiredFeeUsd.toFixed(2)} USD
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-amber-400">Crypto Settlement</span>
-                <div className="text-lg font-bold font-mono text-amber-400">
-                  {cryptoAmount} {selectedCrypto}
+                <span className="text-[10px] uppercase font-bold text-slate-400">
+                  Equivalent
+                </span>
+                <div className="text-sm font-bold font-mono text-white">
+                  ≈ {cryptoAmount} {selectedCrypto}
                 </div>
               </div>
             </div>
 
-            {/* Cryptocurrency Selector */}
+            {/* Cryptocurrency Selector with Bitcoin & Ethereum logos */}
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-2">
-                Select Wallet Currency to Pay With:
+                {t.selectCrypto}:
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {CRYPTO_PAYMENT_OPTIONS.map((c) => {
@@ -191,18 +186,21 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
                     <button
                       key={c.symbol}
                       type="button"
-                      onClick={() => setSelectedCrypto(c.symbol as any)}
-                      className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                      onClick={() => setSelectedCrypto(c.symbol)}
+                      className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/40 text-white'
                           : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs">{c.symbol}</span>
+                        <CryptoIcon symbol={c.symbol} size="xs" />
                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-1">{c.name}</div>
+                      <div className="mt-2">
+                        <div className="font-bold text-xs text-white">{c.symbol}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{c.name}</div>
+                      </div>
                     </button>
                   );
                 })}
@@ -214,7 +212,7 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5 text-slate-300 font-semibold">
                   <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Official Brokerage {selectedCrypto} Receiving Address</span>
+                  <span>{t.recipientAddress} ({selectedCrypto})</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
                   {cryptoMeta.network}
@@ -227,7 +225,7 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="shrink-0 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white transition-colors flex items-center gap-1 text-[11px]"
+                  className="shrink-0 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white transition-colors flex items-center gap-1 text-[11px] cursor-pointer"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -237,7 +235,7 @@ export const FeePaymentModal: React.FC<FeePaymentModalProps> = ({
               <div className="text-[11px] text-slate-400 flex items-start gap-1.5 leading-relaxed">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                 <span>
-                  Send exactly <strong className="text-white font-mono">{cryptoAmount} {selectedCrypto}</strong> to the address above. Once the transaction is broadcast on the blockchain, submit your TXID below for instant confirmation.
+                  Send exactly <strong className="text-white font-mono">{cryptoAmount} {selectedCrypto}</strong> to the address above. Once broadcast, submit your TXID below for verification.
                 </span>
               </div>
             </div>

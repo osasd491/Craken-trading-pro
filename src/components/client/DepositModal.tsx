@@ -15,6 +15,7 @@ import {
 import { ClientUser } from '../../types';
 import { StoreService } from '../../services/store';
 import { formatCurrency, translations } from '../../services/translations';
+import { CryptoIcon } from '../shared/CryptoIcon';
 
 interface DepositModalProps {
   user: ClientUser;
@@ -100,7 +101,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           </div>
         </div>
 
-        {/* Cryptocurrency Selector Pills */}
+        {/* Cryptocurrency Selector Pills with Bitcoin & Ethereum logos */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {(['BTC', 'ETH', 'USDT', 'SOL'] as const).map((asset) => {
             const isSelected = selectedAsset === asset;
@@ -109,18 +110,21 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 key={asset}
                 type="button"
                 onClick={() => setSelectedAsset(asset)}
-                className={`p-3.5 rounded-2xl text-left border transition-all ${
+                className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer flex items-center gap-3 ${
                   isSelected
                     ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg shadow-blue-500/10'
                     : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-extrabold text-sm">{asset}</span>
-                  {isSelected && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
-                </div>
-                <div className="text-[11px] text-slate-400 font-mono truncate">
-                  {wallets[asset]?.network || asset}
+                <CryptoIcon symbol={asset} size="sm" />
+                <div className="overflow-hidden">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-extrabold text-sm text-white">{asset}</span>
+                    {isSelected && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono truncate">
+                    {wallets[asset]?.network || asset}
+                  </div>
                 </div>
               </button>
             );
@@ -130,16 +134,16 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         {/* Deposit Address Box */}
         <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
+            <div className="w-full">
               <div className="text-xs font-semibold text-slate-400 mb-1">
                 Official Brokerage {selectedAsset} Deposit Address ({activeWallet.network}):
               </div>
-              <div className="font-mono text-sm sm:text-base font-bold text-cyan-300 break-all bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+              <div className="font-mono text-xs sm:text-sm font-bold text-cyan-300 break-all bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
                 <span>{activeWallet.address}</span>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shrink-0 transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -223,61 +227,59 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 value={proofNote}
                 onChange={(e) => setProofNote(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                placeholder="Sender exchange name, wallet tag, or notes"
+                placeholder="e.g. Sent from Binance account"
               />
             </div>
 
             <button
               type="submit"
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Send className="w-4 h-4" />
-              Submit Deposit Confirmation
+              <span>Confirm & Submit Deposit Proof</span>
             </button>
           </form>
         </div>
       </div>
 
-      {/* User's Deposit History */}
+      {/* Deposit Ledger History */}
       <div className="bg-slate-900 border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-        <h3 className="text-sm font-bold text-white">Your Submitted Deposits</h3>
-
+        <h3 className="text-sm font-bold text-white">Deposit History</h3>
         {userDeposits.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/40">
-            No deposits initiated yet. Use the form above to submit your transaction hash.
+          <div className="text-center py-8 text-xs text-slate-500">
+            No deposits registered for this account yet.
           </div>
         ) : (
-          <div className="space-y-2.5">
-            {userDeposits.map((dep) => (
+          <div className="space-y-2">
+            {userDeposits.map((d) => (
               <div
-                key={dep.id}
-                className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/60 flex items-center justify-between text-xs"
+                key={d.id}
+                className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/60 flex items-center justify-between text-xs"
               >
-                <div>
-                  <div className="font-bold text-white flex items-center gap-2">
-                    <span>${dep.amount.toLocaleString()} ({dep.asset})</span>
-                    <span className="text-[10px] text-slate-400 font-mono">[{dep.network}]</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono truncate max-w-xs mt-0.5">
-                    TXID: {dep.txHash}
+                <div className="flex items-center gap-3">
+                  <CryptoIcon symbol={d.asset as any} size="sm" />
+                  <div>
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <span>{d.amount} {d.asset}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">({d.network})</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono truncate max-w-xs">
+                      TX: {d.txHash}
+                    </div>
                   </div>
                 </div>
-
-                <div className="text-right">
+                <div className="flex items-center gap-2">
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                      dep.status === 'CONFIRMED'
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      d.status === 'CONFIRMED'
                         ? 'bg-emerald-500/20 text-emerald-300'
-                        : dep.status === 'REJECTED'
+                        : d.status === 'REJECTED'
                         ? 'bg-rose-500/20 text-rose-300'
                         : 'bg-amber-500/20 text-amber-300'
                     }`}
                   >
-                    {dep.status}
+                    {d.status}
                   </span>
-                  <div className="text-[10px] text-slate-500 mt-1">
-                    {new Date(dep.createdAt).toLocaleDateString()}
-                  </div>
                 </div>
               </div>
             ))}
