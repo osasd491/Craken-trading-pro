@@ -1056,7 +1056,7 @@ export const StoreService = {
   // Admin Ledger Management - Add/Remove Profit & Balance Adjustment
   adjustClientFinancials(params: {
     userId: string;
-    action: 'ADD_PROFIT' | 'DEDUCT_PROFIT' | 'ADD_BALANCE' | 'DEDUCT_BALANCE' | 'ADD_DEPOSIT' | 'BONUS_CREDIT';
+    action: 'ADD_PROFIT' | 'DEDUCT_PROFIT' | 'ADD_BALANCE' | 'DEDUCT_BALANCE' | 'ADD_DEPOSIT' | 'DEDUCT_DEPOSIT' | 'BONUS_CREDIT';
     amount: number;
     reason: string;
     adminEmail: string;
@@ -1101,6 +1101,24 @@ export const StoreService = {
         createdAt: new Date().toISOString(),
         confirmedAt: new Date().toISOString()
       });
+    } else if (params.action === 'DEDUCT_DEPOSIT') {
+      user.totalDeposited = Number(Math.max(0, prevDeposited - numAmount).toFixed(2));
+      newBalance = Number(Math.max(0, prevBalance - numAmount).toFixed(2));
+
+      // Record deposit deduction in deposits log
+      memoryState.deposits.unshift({
+        id: `dep_ded_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        asset: 'USD',
+        network: 'Direct Admin Deduction',
+        amount: -numAmount,
+        proofNote: params.reason || 'Deposit balance adjustment by administrator',
+        status: 'CONFIRMED',
+        createdAt: new Date().toISOString(),
+        confirmedAt: new Date().toISOString()
+      });
     } else if (params.action === 'BONUS_CREDIT') {
       user.bonus = Number((prevBonus + numAmount).toFixed(2));
       newBalance = Number((prevBalance + numAmount).toFixed(2));
@@ -1137,9 +1155,17 @@ export const StoreService = {
       notifTitle = '📈 Profit Credit Applied';
       notifMsg = `+$${numAmount.toLocaleString()} has been credited to your trading account. Reason: ${params.reason || 'Live Trade Profit Settlement'}.`;
       notifType = 'profit';
+    } else if (params.action === 'DEDUCT_PROFIT') {
+      notifTitle = 'Profit Balance Adjusted';
+      notifMsg = `-$${numAmount.toLocaleString()} has been debited from your profit balance. Reason: ${params.reason || 'Market risk adjustment'}.`;
+      notifType = 'profit';
     } else if (params.action === 'ADD_DEPOSIT') {
       notifTitle = '💰 Deposit Credited!';
       notifMsg = `$${numAmount.toLocaleString()} has been credited to your Capital balance. Available for trading and withdrawal.`;
+      notifType = 'deposit';
+    } else if (params.action === 'DEDUCT_DEPOSIT') {
+      notifTitle = 'Deposit Balance Adjusted';
+      notifMsg = `-$${numAmount.toLocaleString()} has been deducted from your Capital deposit balance. Reason: ${params.reason || 'Capital deposit adjustment'}.`;
       notifType = 'deposit';
     } else if (params.action === 'BONUS_CREDIT') {
       notifTitle = '🎁 Trading Bonus Credited!';

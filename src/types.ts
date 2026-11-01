@@ -144,7 +144,7 @@ export interface LedgerAuditRecord {
   userId: string;
   userName: string;
   adminEmail: string;
-  action: 'ADD_PROFIT' | 'DEDUCT_PROFIT' | 'ADD_BALANCE' | 'DEDUCT_BALANCE' | 'ADD_DEPOSIT' | 'BONUS_CREDIT';
+  action: 'ADD_PROFIT' | 'DEDUCT_PROFIT' | 'ADD_BALANCE' | 'DEDUCT_BALANCE' | 'ADD_DEPOSIT' | 'DEDUCT_DEPOSIT' | 'BONUS_CREDIT';
   amount: number;
   previousProfit: number;
   newProfit: number;

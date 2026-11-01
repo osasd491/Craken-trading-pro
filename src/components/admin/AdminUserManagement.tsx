@@ -53,7 +53,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   // Profit / Balance / Deposit / Bonus adjustment modal state
   const [selectedUserForAdjust, setSelectedUserForAdjust] = useState<ClientUser | null>(null);
   const [adjustAction, setAdjustAction] = useState<
-    'ADD_PROFIT' | 'DEDUCT_PROFIT' | 'ADD_DEPOSIT' | 'BONUS_CREDIT' | 'ADD_BALANCE' | 'DEDUCT_BALANCE'
+    'ADD_PROFIT' | 'DEDUCT_PROFIT' | 'ADD_DEPOSIT' | 'DEDUCT_DEPOSIT' | 'BONUS_CREDIT' | 'ADD_BALANCE' | 'DEDUCT_BALANCE'
   >('ADD_PROFIT');
   const [adjustCurrency, setAdjustCurrency] = useState<string>('USD');
   const [adjustAmount, setAdjustAmount] = useState<string>('500');
@@ -90,7 +90,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
 
   const handleOpenAdjustModal = (
     user: ClientUser,
-    defaultAction: 'ADD_PROFIT' | 'ADD_DEPOSIT' | 'BONUS_CREDIT' | 'DEDUCT_PROFIT' = 'ADD_PROFIT'
+    defaultAction: 'ADD_PROFIT' | 'ADD_DEPOSIT' | 'DEDUCT_DEPOSIT' | 'BONUS_CREDIT' | 'DEDUCT_PROFIT' = 'ADD_PROFIT'
   ) => {
     setSelectedUserForAdjust(user);
     setAdjustAction(defaultAction);
@@ -99,6 +99,8 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       setAdjustReason('VIP Institutional trading yield payout');
     } else if (defaultAction === 'ADD_DEPOSIT') {
       setAdjustReason('Institutional capital wire deposit confirmation');
+    } else if (defaultAction === 'DEDUCT_DEPOSIT') {
+      setAdjustReason('Capital deposit reversal / withdrawal adjustment');
     } else if (defaultAction === 'BONUS_CREDIT') {
       setAdjustReason('Welcome trading promotion incentive bonus');
     } else {
@@ -433,251 +435,269 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
 
       {/* Manual Financial Adjustment Modal */}
       {selectedUserForAdjust && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
-                  <span>Adjust Client Finances</span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Target: <strong className="text-white">{selectedUserForAdjust.name}</strong> ({selectedUserForAdjust.email})
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedUserForAdjust(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Current Financial State Snapshot */}
-            <div className="grid grid-cols-3 gap-2.5 mb-6 p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-              <div>
-                <div className="text-[10px] uppercase text-blue-400 font-semibold">Capital</div>
-                <div className="text-base font-mono font-bold text-white">
-                  ${(selectedUserForAdjust.totalDeposited || 0).toLocaleString()}
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md p-3 sm:p-6 overscroll-contain">
+          <div className="min-h-full flex items-start justify-center py-6 sm:py-10">
+            <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-150 my-auto">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    <span>Adjust Client Finances</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Target: <strong className="text-white">{selectedUserForAdjust.name}</strong> ({selectedUserForAdjust.email})
+                  </p>
                 </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-slate-400 font-semibold">Balance</div>
-                <div className="text-base font-mono font-bold text-cyan-300">
-                  ${(selectedUserForAdjust.balance || 0).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-emerald-400 font-semibold">Profit 📈</div>
-                <div className="text-base font-mono font-bold text-emerald-400">
-                  +${(selectedUserForAdjust.totalProfit || 0).toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            {adjustSuccessMsg && (
-              <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{adjustSuccessMsg}</span>
-              </div>
-            )}
-
-            {adjustErrorMsg && (
-              <div className="mb-4 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{adjustErrorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleExecuteAdjustment} className="space-y-4">
-              {/* Action Selector */}
-              <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1.5">Action Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdjustAction('ADD_DEPOSIT');
-                      setAdjustReason('Institutional capital wire deposit confirmation');
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
-                      adjustAction === 'ADD_DEPOSIT'
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Wallet className="w-4 h-4 text-blue-200" />
-                    <span>Add Deposit</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdjustAction('ADD_PROFIT');
-                      setAdjustReason('VIP Institutional trading yield payout');
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
-                      adjustAction === 'ADD_PROFIT'
-                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <PlusCircle className="w-4 h-4 text-emerald-200" />
-                    <span>Add Profit 📈</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdjustAction('BONUS_CREDIT');
-                      setAdjustReason('Welcome trading promotion incentive bonus');
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
-                      adjustAction === 'BONUS_CREDIT'
-                        ? 'bg-amber-600 text-white border-amber-500 shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Gift className="w-4 h-4 text-amber-200" />
-                    <span>Add Bonus</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdjustAction('DEDUCT_PROFIT');
-                      setAdjustReason('Profit adjustment / risk margin settlement');
-                    }}
-                    className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
-                      adjustAction === 'DEDUCT_PROFIT'
-                        ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <MinusCircle className="w-3.5 h-3.5 text-rose-300" />
-                    <span>Deduct Profit</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdjustAction('DEDUCT_BALANCE');
-                      setAdjustReason('Manual balance adjustment');
-                    }}
-                    className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
-                      adjustAction === 'DEDUCT_BALANCE'
-                        ? 'bg-slate-800 text-white border-slate-600 shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <MinusCircle className="w-3.5 h-3.5" />
-                    <span>Deduct Balance</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedUserForAdjust(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Currency & Amount Inputs */}
-              <div>
-                <div className="flex gap-2">
-                  <div className="w-40">
-                    <label className="text-xs font-semibold text-slate-400 block mb-1.5">Currency</label>
-                    <select
-                      value={adjustCurrency}
-                      onChange={(e) => setAdjustCurrency(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
-                    >
-                      {Object.entries(CURRENCY_RATES_TO_USD).map(([code, item]) => (
-                        <option key={code} value={code}>
-                          {code} ({item.symbol})
-                        </option>
-                      ))}
-                    </select>
+              {/* Current Financial State Snapshot */}
+              <div className="grid grid-cols-3 gap-2.5 mb-6 p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                <div>
+                  <div className="text-[10px] uppercase text-blue-400 font-semibold">Capital</div>
+                  <div className="text-base font-mono font-bold text-white">
+                    ${(selectedUserForAdjust.totalDeposited || 0).toLocaleString()}
                   </div>
-                  <div className="flex-1">
-                    <label className="text-xs font-semibold text-slate-400 block mb-1.5">
-                      Amount in {adjustCurrency}
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-2.5 font-mono text-slate-400 text-sm">
-                        {CURRENCY_RATES_TO_USD[adjustCurrency]?.symbol || '$'}
-                      </span>
-                      <input
-                        type="number"
-                        min="0.000001"
-                        step="any"
-                        required
-                        value={adjustAmount}
-                        onChange={(e) => setAdjustAmount(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-2 text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
-                      />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-slate-400 font-semibold">Balance</div>
+                  <div className="text-base font-mono font-bold text-cyan-300">
+                    ${(selectedUserForAdjust.balance || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-emerald-400 font-semibold">Profit 📈</div>
+                  <div className="text-base font-mono font-bold text-emerald-400">
+                    +${(selectedUserForAdjust.totalProfit || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {adjustSuccessMsg && (
+                <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{adjustSuccessMsg}</span>
+                </div>
+              )}
+
+              {adjustErrorMsg && (
+                <div className="mb-4 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{adjustErrorMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleExecuteAdjustment} className="space-y-4">
+                {/* Action Selector */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 block mb-1.5">Action Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustAction('ADD_DEPOSIT');
+                        setAdjustReason('Institutional capital wire deposit confirmation');
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
+                        adjustAction === 'ADD_DEPOSIT'
+                          ? 'bg-blue-600 text-white border-blue-500 shadow-md'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Wallet className="w-4 h-4 text-blue-200" />
+                      <span>Add Deposit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustAction('ADD_PROFIT');
+                        setAdjustReason('VIP Institutional trading yield payout');
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
+                        adjustAction === 'ADD_PROFIT'
+                          ? 'bg-emerald-600 text-white border-emerald-500 shadow-md'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <PlusCircle className="w-4 h-4 text-emerald-200" />
+                      <span>Add Profit 📈</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustAction('BONUS_CREDIT');
+                        setAdjustReason('Welcome trading promotion incentive bonus');
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
+                        adjustAction === 'BONUS_CREDIT'
+                          ? 'bg-amber-600 text-white border-amber-500 shadow-md'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Gift className="w-4 h-4 text-amber-200" />
+                      <span>Add Bonus</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustAction('DEDUCT_DEPOSIT');
+                        setAdjustReason('Capital deposit reversal / withdrawal adjustment');
+                      }}
+                      className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
+                        adjustAction === 'DEDUCT_DEPOSIT'
+                          ? 'bg-rose-950/90 text-rose-200 border-rose-500 shadow-md ring-1 ring-rose-500'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <MinusCircle className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Deduct Deposit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustAction('DEDUCT_PROFIT');
+                        setAdjustReason('Profit adjustment / risk margin settlement');
+                      }}
+                      className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
+                        adjustAction === 'DEDUCT_PROFIT'
+                          ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <MinusCircle className="w-3.5 h-3.5 text-rose-300" />
+                      <span>Deduct Profit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdjustAction('DEDUCT_BALANCE');
+                        setAdjustReason('Manual balance adjustment');
+                      }}
+                      className={`p-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
+                        adjustAction === 'DEDUCT_BALANCE'
+                          ? 'bg-slate-800 text-white border-slate-600 shadow-md'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <MinusCircle className="w-3.5 h-3.5 text-slate-300" />
+                      <span>Deduct Balance</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Currency & Amount Inputs */}
+                <div>
+                  <div className="flex gap-2">
+                    <div className="w-40">
+                      <label className="text-xs font-semibold text-slate-400 block mb-1.5">Currency</label>
+                      <select
+                        value={adjustCurrency}
+                        onChange={(e) => setAdjustCurrency(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        {Object.entries(CURRENCY_RATES_TO_USD).map(([code, item]) => (
+                          <option key={code} value={code}>
+                            {code} ({item.symbol})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                        Amount in {adjustCurrency}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-2.5 font-mono text-slate-400 text-sm">
+                          {CURRENCY_RATES_TO_USD[adjustCurrency]?.symbol || '$'}
+                        </span>
+                        <input
+                          type="number"
+                          min="0.000001"
+                          step="any"
+                          required
+                          value={adjustAmount}
+                          onChange={(e) => setAdjustAmount(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-2 text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {adjustCurrency !== 'USD' && (
-                  <div className="mt-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between font-mono">
-                    <span>
-                      Live Value: ≈ $
-                      {(
-                        (parseFloat(adjustAmount) || 0) * (CURRENCY_RATES_TO_USD[adjustCurrency]?.rate || 1)
-                      ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-                      USD
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      Rate: 1 {adjustCurrency} = ${(CURRENCY_RATES_TO_USD[adjustCurrency]?.rate || 1).toLocaleString()} USD
-                    </span>
+                  {adjustCurrency !== 'USD' && (
+                    <div className="mt-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between font-mono">
+                      <span>
+                        Live Value: ≈ $
+                        {(
+                          (parseFloat(adjustAmount) || 0) * (CURRENCY_RATES_TO_USD[adjustCurrency]?.rate || 1)
+                        ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                        USD
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Rate: 1 {adjustCurrency} = ${(CURRENCY_RATES_TO_USD[adjustCurrency]?.rate || 1).toLocaleString()} USD
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Quick presets */}
+                  <div className="flex gap-2 mt-2">
+                    {[100, 250, 500, 1000, 2500, 5000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setAdjustAmount(preset.toString())}
+                        className="px-2 py-0.5 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-slate-300"
+                      >
+                        +{preset} {adjustCurrency}
+                      </button>
+                    ))}
                   </div>
-                )}
-
-                {/* Quick presets */}
-                <div className="flex gap-2 mt-2">
-                  {[100, 250, 500, 1000, 2500, 5000].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setAdjustAmount(preset.toString())}
-                      className="px-2 py-0.5 rounded bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] font-mono text-slate-300"
-                    >
-                      +{preset} {adjustCurrency}
-                    </button>
-                  ))}
                 </div>
-              </div>
 
-              {/* Reason / Audit Note */}
-              <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
-                  Ledger Description & Client Push Reason
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={adjustReason}
-                  onChange={(e) => setAdjustReason(e.target.value)}
-                  placeholder="e.g. VIP Institutional arbitrage yield payout"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
+                {/* Reason / Audit Note */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                    Ledger Description & Client Push Reason
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                    placeholder="e.g. VIP Institutional arbitrage yield payout"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedUserForAdjust(null)}
-                  className="w-1/3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Commit Adjustment</span>
-                </button>
-              </div>
-            </form>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUserForAdjust(null)}
+                    className="w-1/3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Commit Adjustment</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
